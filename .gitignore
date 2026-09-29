@@ -10,3 +10,6 @@ internshiptracker.csv
 review_queue.csv
 excluded_jobs.csv
 imports/private*
+
+portal_jobs/
+.venv-portals/

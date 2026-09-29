@@ -7,6 +7,8 @@ This working copy replaces the earlier scraper and launcher. Your original synce
 attachments are untouched. The three files in `Templates/` are unchanged copies
 of your FPGA, Robotics, and Power resumes.
 
+For the interactive login workflow, jump to [Handshake and LinkedIn setup](#interactive-handshake-and-linkedin-collector).
+
 ## Start here
 
 Open this entire folder as a project in Antigravity. Use **Python 3.10 or newer**.
@@ -266,3 +268,162 @@ conflicting facts. Review notes identify the selected projects and their sources
 The exact source texts and hashes are saved in each attempt's input.json.
 Previously processed jobs are skipped as before; this change applies to new
 requests. Project choice and factual consistency still require human review.
+
+## Interactive Handshake and LinkedIn collector
+
+On branch `feature/portal-job-collector`, `portal_scraper.py` opens a visible
+browser and waits for you to log in each session. It reads job descriptions from
+your loaded search results, saves each successful job immediately, and applies
+the existing filters. It never submits applications. The session is temporary;
+passwords, cookies, browser profiles, and page HTML are not saved.
+
+### 1. Open the project and install the browser tools
+
+Run all commands below from the project folder in an Ubuntu desktop terminal:
+
+```bash
+cd ~/Documents/internship_automation
+git switch feature/portal-job-collector
+```
+
+Install the optional browser dependency once:
+
+```bash
+python3 -m venv .venv-portals
+.venv-portals/bin/python -m pip install -r requirements-portals.txt
+.venv-portals/bin/python -m playwright install chromium
+```
+
+If Ubuntu reports that `venv` or `ensurepip` is unavailable, install
+`python3-venv` with `sudo apt install python3-venv`, then repeat setup. If browser
+launch reports missing system libraries, run
+`.venv-portals/bin/python -m playwright install-deps chromium` and follow its prompts.
+
+You do not need to activate the environment: the commands below use it directly.
+
+### 2. Start one portal collector
+
+Choose one command:
+
+```bash
+.venv-portals/bin/python portal_scraper.py linkedin --max-jobs 25
+.venv-portals/bin/python portal_scraper.py handshake --max-jobs 25
+```
+
+### 3. Log in and collect listings
+
+1. Leave the terminal open. A browser window will appear.
+2. Log in normally, completing any verification or school SSO yourself. For
+   Handshake, select your school if requested.
+3. Open the jobs search and choose your filters, such as United States,
+   internships, and your hardware interests. Scroll the results to load job links.
+4. Return to the terminal and press **Enter**. The script visits the loaded job
+   links in a separate tab and prints each successfully saved job.
+5. When the batch finishes, move the **original browser tab** to the next results
+   page. Return to the terminal and press **Enter** again.
+6. Type **q**, then Enter, to finish. The browser also closes automatically when
+   the successful-job limit is reached. Saved jobs remain on disk.
+
+The limit counts successfully collected distinct jobs per session. Increase it
+with `--max-jobs 100` if needed. Reruns deduplicate by URL, and each new session
+requires login. You can also open an individual job in the original tab and
+press Enter to collect it.
+
+To use installed Chrome instead of Playwright Chromium:
+
+```bash
+.venv-portals/bin/python portal_scraper.py linkedin --channel chrome
+```
+
+### 4. Find your collected jobs
+
+Each portal has its own directory:
+
+```text
+portal_jobs/
+  linkedin/
+    cpt_accepted.csv
+    risky_postings.csv
+    review_queue.csv
+    excluded_jobs.csv
+    data/jobs/
+  handshake/
+    ...same files...
+```
+
+CSV files appear after the first successful collection. Open them in LibreOffice
+Calc. `cpt_accepted.csv` lists explicit CPT acceptance; `risky_postings.csv` lists
+postings with no stated international-student acceptance or rejection.
+**Decision Reasons** shows other unresolved checks. Explicit restrictions are
+excluded. Editing CSVs does not change the saved job records.
+
+### 5. Generate resumes and cover letters
+
+Generation requires your signed-in `agy` CLI and `pdflatex` on PATH, as described
+in [Start here](#start-here). Run these commands from the project folder so
+`--assets-root .` uses your current three resume templates and writing rules.
+
+For LinkedIn:
+
+```bash
+python3 generate.py --root portal_jobs/linkedin --assets-root . --dry-run
+python3 generate.py --root portal_jobs/linkedin --assets-root . --limit 1
+# After reviewing the first documents, generate the remaining ready jobs:
+python3 generate.py --root portal_jobs/linkedin --assets-root .
+```
+
+For Handshake:
+
+```bash
+python3 generate.py --root portal_jobs/handshake --assets-root . --dry-run
+python3 generate.py --root portal_jobs/handshake --assets-root . --limit 1
+python3 generate.py --root portal_jobs/handshake --assets-root .
+```
+
+The preview makes no model calls. Actual generation uses your Antigravity account.
+Suitable risky postings are included automatically. Already processed jobs are
+skipped; add `--retry-errors` to retry failures after fixing their cause.
+
+Documents appear inside the selected portal directory:
+
+```text
+Resumes/Company - Role - short ID/
+  resume.pdf
+  resume.tex
+  cover_letter.md
+CoverLetters/Company - Role - short ID/
+  cover_letter.md
+```
+
+Cover letters are Markdown text drafts, not PDFs. The main project's public-feed
+jobs and generated documents stay in their original directories.
+
+### Troubleshooting and current limitations
+
+- **No job links found:** Open job search results or an individual job in the
+  original tab, allow the page to load, and scroll before pressing Enter again.
+- **Login or verification required:** Complete it manually in the original tab,
+  then retry. The script does not bypass challenges.
+- **Employer or full description not found:** The site's page layout may differ
+  from the configured selectors. See the selector option below.
+- **Nothing ready to generate:** Inspect the portal's `review_queue.csv` and
+  Decision Reasons. Being in `risky_postings.csv` does not waive the other checks.
+- **Missing `agy` or `pdflatex`:** Resolve the dependency using the setup notes
+  above before running generation again.
+
+Unknown dates/location and other job-fit checks still apply. Search filters alone
+are not treated as employer evidence of a job's internship dates. Portal jobs are
+not merged into the public-feed dataset. Private outputs are Git-ignored.
+
+This adapter has offline tests, but authenticated extraction has not been verified
+against your accounts. Site markup varies and can change. Handshake's default
+selectors in particular may need adjustment. Pass `--selectors selectors.json`
+with CSS selector overrides (keys: title, company, location, description). Missing
+employer names or descriptions cause a visible error instead of importing a full
+page as a job description. Collection stops its batch on errors/login challenges;
+it does not bypass them. Details are in the dataset's data/portal_last_run.json.
+
+LinkedIn prohibits automated scraping, and Handshake prohibits bulk automated
+collection. Logging in does not remove those restrictions; access may be limited.
+See [LinkedIn's automated activity policy](https://www.linkedin.com/help/linkedin/answer/a1340567/automated-activity-on-linkedin)
+and [Handshake's terms](https://joinhandshake.com/legal/tos/).

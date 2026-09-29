@@ -216,13 +216,14 @@ def organize_existing_outputs(root: Path, record: dict) -> bool:
 
 
 def generate_record(root: Path, record: dict, agy: str, compiler: str,
-                    timeout: int, compile_timeout: int) -> None:
+                    timeout: int, compile_timeout: int, assets_root: Path | None = None) -> None:
     job_id, template = record.get("id", ""), record.get("template")
     if not re.fullmatch(r"[a-f0-9]{24}", job_id):
         raise GenerationError("Invalid job ID")
     if template not in TEMPLATES:
         raise GenerationError("Job has no supported baseline selection")
-    baseline_path = project_path(root, "Templates", f"{template}.tex")
+    assets_root = assets_root or root
+    baseline_path = project_path(assets_root, "Templates", f"{template}.tex")
     baseline = baseline_path.read_text(encoding="utf-8")
     attempt_name = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
     attempt = project_path(root, "data", "generation", job_id, attempt_name)
@@ -235,7 +236,7 @@ def generate_record(root: Path, record: dict, agy: str, compiler: str,
     if not isinstance(inputs["description"], str) or len(inputs["description"].strip()) < 100:
         raise GenerationError("Full job description is missing or too short for tailoring")
     inputs["approved_resumes"] = {
-        name: project_path(root, "Templates", f"{name}.tex").read_text(encoding="utf-8")
+        name: project_path(assets_root, "Templates", f"{name}.tex").read_text(encoding="utf-8")
         for name in sorted(TEMPLATES)
     }
     inputs["approved_resume_sha256"] = {
@@ -247,7 +248,7 @@ def generate_record(root: Path, record: dict, agy: str, compiler: str,
     write_text(attempt / "input.json", json.dumps(inputs, indent=2, ensure_ascii=False))
     write_text(attempt / "baseline.tex", baseline)
     write_text(attempt / "output-schema.json", json.dumps(OUTPUT_SCHEMA, indent=2))
-    rules = (root / "SKILL.md").read_text(encoding="utf-8")
+    rules = (assets_root / "SKILL.md").read_text(encoding="utf-8")
     prompt = (
         "Produce the finished resume and cover letter now using these authoring rules. "
         "This is a text-generation request; no tools or filesystem access are needed. "
@@ -330,6 +331,7 @@ def generation_candidate(record: dict, retry_errors: bool = False) -> bool:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent)
+    parser.add_argument("--assets-root", type=Path, help="Use templates and authoring rules from this directory")
     parser.add_argument("--dry-run", action="store_true", help="Preview eligible and suitable risky jobs without invoking Antigravity")
     parser.add_argument("--limit", type=positive_int, help="Maximum number of jobs to generate")
     parser.add_argument("--job-id", help="Process only this exact job ID")
@@ -367,7 +369,7 @@ def main(argv: list[str] | None = None) -> int:
             failures = 0
             for record in selected:
                 try:
-                    generate_record(root, record, agy, compiler, args.timeout, args.compile_timeout)
+                    generate_record(root, record, agy, compiler, args.timeout, args.compile_timeout, **({"assets_root": args.assets_root.resolve()} if args.assets_root else {}))
                     print(f"Generated drafts: {record.get('company')} — {record.get('title')}; review before applying.")
                 except (GenerationError, OSError, ValueError) as exc:
                     failures += 1

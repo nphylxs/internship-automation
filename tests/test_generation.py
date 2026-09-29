@@ -132,6 +132,16 @@ class GenerationTests(unittest.TestCase):
         self.assertIn("approved_resumes", prompt)
         self.assertTrue((attempt / "REVIEW.md").is_file())
 
+    def test_portal_generation_uses_shared_assets_and_separate_outputs(self):
+        job = record()
+        output = self.root / "portal_jobs" / "linkedin"
+        with patch.object(generate, "run_bounded", side_effect=self.fake_commands):
+            generate.generate_record(output, job, "fake-agy", "fake-pdflatex", 10, 10,
+                                     assets_root=self.root)
+        self.assertTrue((output / job["resume_path"]).is_file())
+        self.assertTrue((output / job["cover_letter_path"]).is_file())
+        self.assertFalse((self.root / "Resumes").exists())
+
     def test_agent_exit_zero_does_not_mark_complete_without_pdf(self):
         def no_pdf(args, **kwargs):
             if args[0] == "fake-agy":
