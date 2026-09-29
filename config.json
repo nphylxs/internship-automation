@@ -1,0 +1,24 @@
+{
+  "filters": {
+    "target_country": "US",
+    "target_year": 2027,
+    "target_season": "summer",
+    "require_explicit_authorization": true
+  },
+  "request_interval_seconds": 0.6,
+  "max_detail_fetches": 25,
+  "description_cache_days": 3,
+  "sources": [
+    {"name": "simplify-hardware", "type": "simplify", "url": "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/.github/scripts/listings.json", "category": "Hardware"},
+    {"name": "astera", "type": "greenhouse", "board": "asteraearlycareer2026", "company": "Astera Labs"},
+    {"name": "drw", "type": "greenhouse", "board": "drweng", "company": "DRW"},
+    {"name": "neuralink", "type": "greenhouse", "board": "neuralink", "company": "Neuralink"},
+    {"name": "figure", "type": "greenhouse", "board": "figureai", "company": "Figure"},
+    {"name": "amperesand", "type": "greenhouse", "board": "amperesand", "company": "Amperesand"},
+    {"name": "mill", "type": "greenhouse", "board": "mill", "company": "Mill"},
+    {"name": "roboforce", "type": "greenhouse", "board": "roboforce", "company": "RoboForce"},
+    {"name": "zoox", "type": "lever", "site": "zoox", "company": "Zoox"},
+    {"name": "kepler", "type": "lever", "site": "kepler", "company": "Kepler Communications"},
+    {"name": "cesiumastro", "type": "lever", "site": "CesiumAstro", "company": "CesiumAstro"}
+  ]
+}

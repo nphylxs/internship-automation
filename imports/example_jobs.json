@@ -1,0 +1,12 @@
+[
+  {
+    "company": "Example Employer — demonstration only",
+    "title": "FPGA Engineering Intern — Summer 2027",
+    "application_url": "https://example.com/jobs/fpga-intern-2027",
+    "location": "San Jose, CA, United States",
+    "description": "Summer 2027 FPGA engineering internship in San Jose, California, United States. Develop RTL in SystemVerilog, simulate and verify FPGA logic, and work with Vivado. Current electrical engineering undergraduate students are welcome. International students using CPT or OPT are welcome to apply.",
+    "employment_type": "Internship",
+    "internship_year": 2027,
+    "internship_season": "summer"
+  }
+]

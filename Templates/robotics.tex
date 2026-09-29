@@ -1,0 +1,174 @@
+%-------------------------
+% Resume in Latex
+% Author : Jake Gutierrez
+% Based off of: https://github.com/sb2nov/resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\setlength{\footskip}{12pt}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+\pdfgentounicode=1
+
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+  {\Huge \scshape Divyamshu Shrestha} \\ \vspace{1pt}
+    \small 656-214-1160 $|$ \href{mailto:divyamshu@usf.edu}{\underline{divyamshu@usf.edu}} $|$
+    \href{https://linkedin.com/in/divyamshuu}{\underline{linkedin.com/in/divyamshuu}} $|$
+    \href{https://github.com/nphylxs}{\underline{github.com/nphylxs}}
+\end{center}
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {University of South Florida}{Tampa, FL}
+      {Bachelor of Science in Electrical Engineering}{Expected Graduation: May 2028}
+      \resumeItemListStart
+        \resumeItem{GPA: 3.92; Dean's List $|$ Junior Standing}
+        \resumeItem{\textbf{Relevant Coursework:} Microprocessor Principles, Applied Industrial AI, Electrical Systems, Power Electronics, Digital Circuits, Signals \& Systems, Data Network \& Systems}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+%-----------EXPERIENCE-----------
+\section{Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {RARE Lab}{Jul. 2025 -- Aug. 2026}
+      {Junior Undergraduate Researcher III}{Tampa, FL}
+      \resumeItemListStart
+        \resumeItem{Engineered low-latency interfaces utilizing \textbf{SPI and I2C} protocols to bridge physical hardware sensors with onboard edge compute units.}
+        \resumeItem{Designed custom 4-layer PCBs in \textbf{Altium Designer} for power distribution and sensor logic, implementing EMI shielding and trace routing for motor controllers.}
+        \resumeItem{Modeled high-fidelity 3D assemblies in \textbf{SolidWorks} for hardware packaging and mechanical integration of the robotic platform.}
+        \resumeItem{Co-authored ``Bloom Preview," published in the \textbf{HRI 2026} proceedings, detailing hardware-software integration for autonomous platforms.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+  {Nepalese Students' Association at USF}{Jun. 2025 -- Present}
+  {President}{Tampa, FL}
+  \resumeItemListStart
+    \resumeItem{Spearheaded a disaster relief initiative---including organizing a community vigil---that successfully raised over \$3000 from local residents and university students to support flood victims in Nepal.}
+    \resumeItem{Direct the annual operating budget and financial documentation for a 100+ member student organization, overseeing all funding requests and expense allocations.}
+    \resumeItem{Partner with multiple regional Nepalese associations across Florida to conceptualize and execute cultural events, maximizing community engagement and fundraising efforts.}
+  \resumeItemListEnd
+      
+  \resumeSubHeadingListEnd
+
+%-----------PROJECTS (ROBOTICS / EMBEDDED)-----------
+\section{Projects}
+    \resumeSubHeadingListStart
+    \resumeSubheading
+      {Autonomous Face-Tracking Vision System}{Aug. 2026}
+      {Edge Compute \& Sensor Integration}{}
+      \resumeItemListStart
+        \resumeItem{Developed a closed-loop autonomy script in \textbf{Python (C++ backend)} to interface with external servo controllers via hardware PWM.}
+        \resumeItem{Integrated a \textbf{Camera sensor} with a Raspberry Pi 5 \textbf{edge compute module} to process real-time video feeds and extract bounding-box coordinates.}
+        \resumeItem{Debugged hardware signaling and CPU overhead constraints, ensuring deterministic latency for physical actuation of the tracking mount.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Lithium-Ion Battery Pack \& Hardware Packaging}{Apr. 2026}
+      {Mechatronics \& Thermal Integration}{}
+      \resumeItemListStart
+        \resumeItem{Designed and packaged a custom 10S2P battery pack, integrating a Battery Management System (BMS) to handle strict \textbf{thermal considerations} and overcurrent protection.}
+        \resumeItem{Analyzed system performance using lab equipment (multimeters, loads) to validate a 33\% increase in effective range under heavy load constraints.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {UR2PhD Artificial Intelligence Research Module}{Spring 2026}
+      {Research Training Program}{}
+      \resumeItemListStart
+        \resumeItem{Completed an intensive undergraduate research methodology program focused on applying machine learning paradigms to real-world engineering and robotics problems.}
+        \resumeItem{Evaluated the integration of Large Language Models (LLMs) with edge-compute hardware to drive physical actuation.}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+%-----------SKILLS (ROBOTICS / EMBEDDED)-----------
+\section{Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+    \textbf{Hardware \& CAD}{: Altium Designer (PCBs), SolidWorks, Hardware Packaging, Soldering, Oscilloscopes, Multimeters} \\
+    \textbf{Embedded \& Protocols}{: SPI, I2C, UART, CAN, Edge Compute (Raspberry Pi / Nvidia Jetson architecture), PWM} \\
+    \textbf{Languages}{: Python, C/C++, SystemVerilog, Bash} \\
+    \textbf{Tools \& Workflows}{: Linux, Git version control, collaborative engineering workflows}
+    }}
+ \end{itemize}
+
+%-------------------------------------------
+\end{document}

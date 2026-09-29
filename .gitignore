@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.run.lock
+data/
+Resumes/
+CoverLetters/
+internshiptracker.csv
+review_queue.csv
+excluded_jobs.csv
+imports/private*
