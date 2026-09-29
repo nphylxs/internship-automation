@@ -273,8 +273,9 @@ requests. Project choice and factual consistency still require human review.
 
 On branch `feature/portal-job-collector`, `portal_scraper.py` opens a visible
 browser and waits for you to log in each session. It reads job descriptions from
-your loaded search results, saves each successful job immediately, and applies
-the existing filters. It never submits applications. The session is temporary;
+your filtered search and advances through available result
+pages automatically. It saves each successful job immediately and applies the
+existing filters. It never submits applications. The session is temporary;
 passwords, cookies, browser profiles, and page HTML are not saved.
 
 ### 1. Open the project and install the browser tools
@@ -316,18 +317,37 @@ Choose one command:
 2. Log in normally, completing any verification or school SSO yourself. For
    Handshake, select your school if requested.
 3. Open the jobs search and choose your filters, such as United States,
-   internships, and your hardware interests. Scroll the results to load job links.
-4. Return to the terminal and press **Enter**. The script visits the loaded job
-   links in a separate tab and prints each successfully saved job.
-5. When the batch finishes, move the **original browser tab** to the next results
-   page. Return to the terminal and press **Enter** again.
-6. Type **q**, then Enter, to finish. The browser also closes automatically when
-   the successful-job limit is reached. Saved jobs remain on disk.
+   internships, and your hardware interests. Leave the results list open; you do
+   not need to open each job yourself.
+4. Return to the terminal and press **Enter once**. The script collects job links,
+   visits their descriptions in a separate tab, expands descriptions when needed,
+   and moves to the next results page automatically. It prints each saved job.
+5. Collection ends when it reaches a limit or runs out of results. To stop early,
+   press **Ctrl+C** in the terminal. Jobs already saved remain on disk.
 
-The limit counts successfully collected distinct jobs per session. Increase it
-with `--max-jobs 100` if needed. Reruns deduplicate by URL, and each new session
+`--max-jobs` limits the number of distinct jobs attempted per session, including
+failed reads; the default is 25. `--max-pages` limits the number of result pages
+visited; the default is 20. To collect a larger batch:
+
+```bash
+.venv-portals/bin/python portal_scraper.py handshake --max-jobs 100 --max-pages 20
+```
+
+Reruns update existing records without duplicating them, and each new session
 requires login. You can also open an individual job in the original tab and
-press Enter to collect it.
+press Enter to collect it. An unreadable posting is logged and skipped so later
+jobs can still be collected. Login or verification challenges require you to
+complete the browser step manually.
+
+For the previous workflow, where you choose each results page or individual job
+and press Enter to collect its loaded links, add `--manual`:
+
+```bash
+.venv-portals/bin/python portal_scraper.py handshake --manual --max-jobs 25
+```
+
+In manual mode, navigate the original browser tab between batches and press
+Enter again, or type **q** and Enter to finish.
 
 To use installed Chrome instead of Playwright Chromium:
 
@@ -401,11 +421,18 @@ jobs and generated documents stay in their original directories.
 ### Troubleshooting and current limitations
 
 - **No job links found:** Open job search results or an individual job in the
-  original tab, allow the page to load, and scroll before pressing Enter again.
+  original tab and allow the page to load before starting collection. In
+  Handshake, keep the left results list visible even when a job is selected.
 - **Login or verification required:** Complete it manually in the original tab,
   then retry. The script does not bypass challenges.
 - **Employer or full description not found:** The site's page layout may differ
-  from the configured selectors. See the selector option below.
+  from the configured selectors. The posting is logged and skipped; see the
+  selector option below.
+- **Collection ends before the requested number:** The job limit counts attempted
+  jobs, including failed reads. The results may also be exhausted, the page limit
+  may have been reached, or pagination may not match the supported layout. Check
+  `data/portal_last_run.json` in the portal's directory. Use `--manual` to collect
+  another results page while diagnosing a changed layout.
 - **Nothing ready to generate:** Inspect the portal's `review_queue.csv` and
   Decision Reasons. Being in `risky_postings.csv` does not waive the other checks.
 - **Missing `agy` or `pdflatex`:** Resolve the dependency using the setup notes
@@ -415,13 +442,18 @@ Unknown dates/location and other job-fit checks still apply. Search filters alon
 are not treated as employer evidence of a job's internship dates. Portal jobs are
 not merged into the public-feed dataset. Private outputs are Git-ignored.
 
-This adapter has offline tests, but authenticated extraction has not been verified
-against your accounts. Site markup varies and can change. Handshake's default
-selectors in particular may need adjustment. Pass `--selectors selectors.json`
-with CSS selector overrides (keys: title, company, location, description). Missing
-employer names or descriptions cause a visible error instead of importing a full
-page as a job description. Collection stops its batch on errors/login challenges;
-it does not bypass them. Details are in the dataset's data/portal_last_run.json.
+The current Handshake results list, job details, description expansion, and
+pagination were checked in an authenticated browser session, including following
+a job link and moving to the next results page. The collector also passed a
+browser test that saved jobs across two simulated result pages, expanded their
+descriptions, and skipped duplicates. A full authenticated Python collector run
+has not been performed; LinkedIn's live
+extraction also remains unverified. Site markup varies and can change. Pass
+`--selectors selectors.json` with CSS selector overrides (keys: title, company,
+location, description) if the detail layout differs. Missing employer names or
+descriptions cause a visible error instead of importing a full page as a job
+description. Login challenges are not bypassed. Run details are saved in the
+dataset's `data/portal_last_run.json`.
 
 LinkedIn prohibits automated scraping, and Handshake prohibits bulk automated
 collection. Logging in does not remove those restrictions; access may be limited.

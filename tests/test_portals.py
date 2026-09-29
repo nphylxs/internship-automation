@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from portal_scraper import job_url, save_job
+from portal_scraper import job_url, job_key, save_job
 from job_store import Store
 
 
@@ -11,6 +11,12 @@ class PortalTests(unittest.TestCase):
         self.assertEqual(job_url('https://usf.joinhandshake.com/stu/jobs/123?x=2', 'handshake'), 'https://usf.joinhandshake.com/stu/jobs/123')
         for url in ('https://linkedin.com.evil.org/jobs/view/123', 'https://www.linkedin.com/jobs/search/', 'http://www.linkedin.com/jobs/view/123'):
             self.assertIsNone(job_url(url, 'linkedin'))
+
+    def test_handshake_modern_and_legacy_routes_share_identity(self):
+        urls = ["https://app.joinhandshake.com/job-search/123?page=2",
+                "https://usf.joinhandshake.com/stu/jobs/123",
+                "https://app.joinhandshake.com/jobs/123?searchId=abc"]
+        self.assertEqual({job_key(url, "handshake") for url in urls}, {"handshake:123"})
 
     def test_isolated_records_preserve_generation_on_duplicate(self):
         with tempfile.TemporaryDirectory() as temp:
