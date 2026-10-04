@@ -1,0 +1,62 @@
+/* Shared semantic colors let every workspace surface follow the same theme. */
+:root{--surface-soft:#f0f3ea;--field:#fcfcf9;--hover-line:#bdcabb;--button-ink:#fff;--muted:#627064;--blue-soft:#e8f0f3;--blue-ink:#426876;--purple-soft:#f0eaf5;--purple-ink:#7b5792;--amber-soft:#fcf0d8;--amber-ink:#8c6126;--error-soft:#fae9e2;--sidebar:#f0f2e9;--hover:#e4e9dd;--selected:#dce7d7}
+:root[data-theme=dark]{--ink:#e3ece3;--muted:#a6b7aa;--green:#afd2b0;--green-dark:#c1e3bd;--sage:#293e31;--paper:#101a16;--white:#19261f;--line:#33463a;--peach:#3c2c22;--orange:#e8aa7e;--red:#ffb1a4;--shadow:0 4px 22px #00000012;--surface-soft:#1f2e25;--field:#142019;--hover-line:#5c8065;--button-ink:#163222;--blue-soft:#24383e;--blue-ink:#9dc5d1;--purple-soft:#352d40;--purple-ink:#cfb2e7;--amber-soft:#3c3322;--amber-ink:#e7c18a;--error-soft:#3e2926;--sidebar:#15221b;--hover:#25372b;--selected:#2b4232}
+html{scrollbar-color:var(--hover-line) var(--paper);scroll-behavior:smooth}
+.skip-link{top:16px;opacity:0;pointer-events:none;transform:translateY(calc(-100% - 24px));color:var(--button-ink)}.skip-link:focus{opacity:1;pointer-events:auto;transform:none}
+body{background:var(--paper);color:var(--ink)}
+button{color:var(--button-ink)}
+.sidebar{background:var(--sidebar);overflow-y:auto;scrollbar-width:thin}
+.sidebar nav button{color:var(--muted)}.sidebar nav button:hover{background:var(--hover)}.sidebar nav button.active{background:var(--selected);color:var(--green-dark)}
+.nav-count{background:var(--white);color:var(--green-dark)}
+.sidebar-tip,.sidebar-footer{border-color:var(--line)}
+.topbar{background:var(--white)}.topbar-actions{display:flex;align-items:center;gap:24px}
+.theme-control{display:flex;align-items:center;gap:7px;margin:0;color:var(--muted);flex-shrink:0}
+.theme-control select{margin:0;background:var(--surface-soft);border-color:var(--line);padding:6px 23px 6px 9px;font-size:11px;min-height:34px;width:auto;max-width:100px}
+.theme-control>.icon{width:15px;height:15px}
+.theme-control select:focus-visible{outline-color:var(--orange)}
+.eyebrow,.nav-caption,.sidebar-tip p,.sidebar-tip small,.local-note,.breadcrumb,.breadcrumb strong,.topbar-note,.workspace-footer,.stat>span,.stat>small,.stat .icon,.company-name,.job-meta .meta,.job-link,.capture-warning:not(.error),.tracking-toggle,.queue-item-title,.queue-item-header .queue-state,.queue-empty,.queue-footnote,.privacy-note,.privacy-note h3,.backup-tools summary,#queue-status,.selection-toolbar #selection-count,.selection-toolbar #clear-selection{color:var(--muted)}
+label,.check h3{color:var(--ink)}input,textarea,select{background:var(--field);border-color:var(--line);color:var(--ink)}
+input::placeholder,textarea::placeholder{color:var(--muted)}input:focus,textarea:focus,select:focus{border-color:var(--green);outline-color:var(--hover-line)}
+button.secondary{background:var(--white);color:var(--ink);border-color:var(--line)}button.secondary:hover{background:var(--hover);border-color:var(--hover-line)}button.text-button:hover{background:var(--hover);color:var(--green)}button.danger{background:var(--error-soft);color:var(--red);border-color:var(--line)}
+.section-icon,.empty-symbol{background:var(--sage);color:var(--green-dark)}.section-icon.peach{color:var(--orange)}
+.workflow-strip{background:var(--surface-soft);color:var(--muted)}.workflow-strip b{background:var(--sage);color:var(--green-dark)}.workflow-line{background:var(--line)}
+.fit-card{background:linear-gradient(145deg,var(--white),var(--surface-soft))}.project-card{background:linear-gradient(110deg,var(--white),var(--surface-soft))}
+.empty-state{background:var(--white);border-color:var(--line)}.fit-empty{background:transparent}.check p{color:var(--muted)}
+#project-ideas .job,.document-editor textarea{background:var(--white)}.document-editor,#review-notes{background:var(--surface-soft)}.document-editor>label span{color:var(--muted)}
+.ready-stat,#export-status,#notice,#operation-status{background:var(--sage);color:var(--green-dark);border-color:var(--line)}#notice.error{background:var(--error-soft);border-color:var(--line);color:var(--red)}
+.application-card.selected{background:var(--surface-soft);border-color:var(--hover-line)}.application-card:hover{border-color:var(--hover-line)}
+.job-actions{border-color:var(--line)}.job-actions>select{background:var(--surface-soft)}.job-actions .open-application{background:var(--sage);color:var(--green-dark)}.job-actions .open-application:hover{background:var(--hover)}
+.company-avatar{background:var(--sage);color:var(--green-dark)}.company-avatar[data-tone="1"]{background:var(--peach);color:var(--orange)}.company-avatar[data-tone="2"]{background:var(--blue-soft);color:var(--blue-ink)}.company-avatar[data-tone="3"]{background:var(--purple-soft);color:var(--purple-ink)}
+.status-badge{background:var(--surface-soft);color:var(--muted)}.status-badge.ready{background:var(--sage);color:var(--green-dark)}.status-badge.processing,.preview-note{background:var(--amber-soft);color:var(--amber-ink)}.status-badge.attention{background:var(--error-soft);color:var(--red)}
+.view-tabs button.active{border-color:var(--hover-line)}.pdf-preview{background:var(--surface-soft)}
+kbd{background:var(--white);border-color:var(--line);color:var(--muted)}
+/* Popup surfaces share the workspace preference. */
+body.popup{background:var(--paper);max-width:100vw}.popup-header,.popup-footer{background:var(--sidebar)}.capture-card{background:var(--white);border-color:var(--line)}.intro-spark{background:var(--sage);border-color:var(--line)}.intro-spark .icon{color:var(--orange)}
+.toggle-label{color:var(--ink)}.toggle-label small,.template-line label,.shortcut-note,.popup-counts,.popup-counts strong,#choose-tabs{color:var(--muted)}
+.template-line select{background:var(--field)}.collection-card{background:linear-gradient(125deg,var(--peach),var(--surface-soft));border-color:var(--line)}.feature-icon{background:var(--peach);color:var(--orange)}
+.collection-heading p,.collection-controls label,.collection-hint,#collection-status{color:var(--muted)}.collection-controls input{background:var(--field);border-color:var(--line)}.collection-controls button{background:var(--white);color:var(--ink);border-color:var(--line)}.collection-controls button:hover{background:var(--hover)}
+#collection-status{border-color:var(--line)}#popup-notice{background:var(--sage);color:var(--green-dark);border-color:var(--line)}#popup-notice.error{background:var(--error-soft);color:var(--red);border-color:var(--line)}#workspace{background:var(--white);border-color:var(--line)}
+[data-theme=dark] .art-orbit,[data-theme=dark] .art-paper.front{border-color:var(--line)}[data-theme=dark] .art-paper.front{background:var(--white)}[data-theme=dark] .art-paper.back{background:var(--sage)}[data-theme=dark] .art-paper i{background:var(--line)}
+[data-theme=dark] .brand-mark{color:var(--button-ink)}[data-theme=dark] .status-dot.busy{box-shadow:0 0 0 4px var(--amber-soft)}[data-theme=dark] ::selection{background:#47654b;color:#fff}
+/* Motion gives navigation a little rhythm without shifting the layout. */
+button{transition:background .18s,border-color .18s,box-shadow .18s,transform .18s}button:active{transform:translateY(1px) scale(.985)}
+.panel{animation:desk-arrive .38s cubic-bezier(.2,.7,.3,1)}
+.tracking-dialog[open]{animation:desk-arrive .25s ease-out}
+.journey-card{animation:desk-arrive .32s ease-out both}.journey-card:nth-child(2){animation-delay:30ms}.journey-card:nth-child(3){animation-delay:60ms}.journey-card:nth-child(4){animation-delay:90ms}
+.nav-count,.status-badge,.journey-badge{transition:background .2s,color .2s}
+@keyframes desk-arrive{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@media(min-width:1100px){.queue-panel{position:sticky;top:24px}}
+@media(max-height:850px) and (min-width:701px){.sidebar-tip{margin-top:28px;margin-bottom:18px;padding-top:18px}.sidebar-tip p{margin-bottom:14px}.nav-caption{margin-top:35px}.sidebar{padding-top:23px}.sidebar-tip h3{font-size:18px}}
+@media(max-width:980px){.topbar-note{display:none}}
+@media(max-width:700px){
+  .sidebar nav{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px}.sidebar nav button{justify-content:flex-start;padding:10px 12px;min-height:44px;font-size:12px}.sidebar nav button .icon{width:17px;height:17px}.nav-count{margin-left:auto}
+  .sidebar{padding:18px 18px 12px;overflow:visible}.topbar{height:59px;gap:10px}.topbar-actions{gap:0}.breadcrumb{font-size:11px;gap:8px}.breadcrumb>span{display:none}.breadcrumb{font-size:0}.breadcrumb strong{font-size:12px}.theme-control select{min-height:38px;font-size:12px}.theme-control>.icon{display:none}
+  .page-heading h1{font-size:clamp(29px,7.8vw,39px);text-wrap:balance}.page-heading p{font-size:12px;line-height:1.8}.page-heading{padding:27px 0 28px}
+  .workspace label{font-size:12px}.workspace input:not([type=checkbox]),.workspace select{min-height:44px;font-size:13px}.workspace button:not(.text-button){min-height:42px}.workspace .text-button{min-height:38px}
+  .workspace .muted{font-size:12px}.workspace .field-hint{font-size:11px}.pair{grid-template-columns:1fr;gap:0}.document-toolbar{flex-wrap:wrap}.document-toolbar p{font-size:12px}.document-toolbar label{min-width:0;width:100%}
+  .workspace .view-tabs button{font-size:11px}.job-actions>button{font-size:11px;padding:9px}.job-actions>select{max-width:100%;font-size:12px}.job-actions .version-picker{max-width:100%;flex:1}.selection-toolbar>button{font-size:12px}.selection-toolbar .text-button{font-size:12px}.job-meta .meta,.capture-warning{font-size:11px;overflow-wrap:anywhere}.status-badge{font-size:10px}.company-name{font-size:11px}.job-title-group h3{font-size:15px}
+  .queue-settings label,.queue-panel .small-note,#queue-status,.queue-item-header strong,.queue-item-title{font-size:12px}.queue-item-header .queue-state{font-size:10px}.queue-item button{font-size:11px;min-height:38px}.workflow-strip{font-size:10px}
+  .document-editor button{font-size:11px}.document-editor .actions{gap:8px;justify-content:flex-start}.editor-heading{flex-wrap:wrap;gap:7px}.editor-heading>span{font-size:8px;letter-spacing:.8px}
+}
+@media(max-width:360px){.workspace main{padding-left:14px;padding-right:14px}.sidebar{padding-left:14px;padding-right:14px}.sidebar nav button{font-size:11px;padding:9px}.card{padding:17px}.job-heading{gap:8px}.job-heading .company-avatar{width:31px;height:34px;font-size:13px}.stat{padding:16px 13px}.stat>span{font-size:10px}.stat>small{font-size:9px}.popup-header{padding:0 14px}.popup-main{padding:0 13px}.popup-header .brand{font-size:14px}.popup-footer{padding-left:13px;padding-right:13px}.popup .theme-control select{font-size:10px;max-width:80px}.collection-controls{flex-wrap:wrap}.collection-controls button{flex-basis:100%}.intro-spark{width:45px;height:45px;margin-right:4px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

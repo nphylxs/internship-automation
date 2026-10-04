@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Internship Desk",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "minimum_chrome_version": "110",
   "description": "Collect internship listings and prepare tailored application documents in the background.",
   "permissions": ["activeTab", "scripting", "storage", "nativeMessaging", "alarms", "unlimitedStorage"],

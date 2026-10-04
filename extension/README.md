@@ -28,6 +28,71 @@ Chromium, add `--browser chrome` or `--browser chromium`. Linux and macOS host
 registration are supported; Windows registration is not implemented. Flatpak/Snap
 browser sandbox packages may require native messaging integration outside this installer.
 
+## Progress tracker, themes, and responsive workspace (version 0.8)
+
+Open **Progress tracker** to bring Gemini Spark's Google Sheets updates into the
+workspace. The tracker has list and board views, company/role search, status and
+review filters, application timelines, next steps, source email links, and links
+back to saved applications and their document versions.
+
+1. Sign in to Google and open the Sheet in the **same browser profile** as the
+   extension. Select the worksheet Gemini Spark updates and copy its full URL
+   (the `gid` identifies that tab).
+2. Paste the URL into **Progress tracker → Connection settings → Google Sheets
+   URL**. Click **Preview sheet** and grant the requested Google site access.
+3. Review the column mapping. **Company**, **Role**, and **Status** are required;
+   date, job URL, email URL, notes, next step, and application ID are optional.
+   Common header names are recognized automatically. The first five rows can be
+   previewed before connecting; all values render as plain text.
+4. Choose whether to sync every 15 minutes, then **Connect & sync**. **Sync now**
+   refreshes immediately. Scheduled sync runs while the browser is open; browser
+   sleep can delay an alarm. Last successful sync and errors stay visible.
+
+The connection reads Google's CSV export with the browser's existing Google
+session. It does not ask you to publish the Sheet, store an access token, read your
+inbox, or edit the Sheet. Private access depends on the account, browser cookie
+settings, and the owner's download policy. If Google returns a sign-in/access
+page, open the Sheet in the same profile and retry. Alternatively, download the
+worksheet with **File → Download → Comma-separated values (.csv)** and choose
+**Import a CSV**. CSV imports use the same mapping and tracker but require a new
+file to refresh; they do not enable automatic sync. A user's live private Sheet
+connection must be verified with their actual link and session.
+
+Rows represent either current applications or successive email updates. A stable
+**Application ID** is the best grouping key; otherwise the tracker uses job URL,
+then exact company and role. Keep identifiers consistent across updates. Distinct
+applications for the same company/role need different IDs or URLs. When all dates
+for an application are usable, the newest date determines its status; otherwise
+the last matching Sheet row wins and the tracker shows a date warning. Prefer ISO
+dates (`YYYY-MM-DD`, optionally with time/timezone); numeric slash dates are
+treated as ambiguous. Unrecognized statuses stay **Unknown**, preserving the
+original text for review. Rows missing company or role are skipped and counted.
+
+Matching to saved opportunities uses an exact canonical job URL or a unique exact
+company/role pair. Review unmatched or ambiguous entries in **View journey**, then
+choose a saved application or **Keep as a separate application**. This links
+documents without changing the original opportunity's manual status or drafts.
+The latest 100 distinct updates per application are retained. Repeated syncs do
+not duplicate events. Applications removed from the source remain labeled as
+retained history. Changing Sheets keeps previous source histories locally; they
+reappear when that source is reconnected. CSV imports share one local CSV source.
+
+The importer accepts up to 2 MB, 5,000 data rows, and 100 columns. Failed reads or
+changed column headers preserve the last successful data; changed headers require
+a new preview/mapping. **Disconnect · keep history** stops scheduled reads. Site
+permissions can separately be revoked in the browser's extension settings.
+**Applications → Backup & restore** includes tracker history and manual matches.
+Restoring validates imported records and leaves Sheets sync disconnected.
+
+Choose **System**, **Light**, or **Dark** in the workspace top bar or popup. The
+choice is remembered across views. Narrow screens have stacked forms, roomier
+controls, and a two-column navigation menu. Panel transitions, card interactions,
+and sync indicators honor the operating system's reduced-motion setting. Resume
+PDFs and printed cover letters keep their white document pages.
+
+Reload the unpacked extension at `brave://extensions` and reopen its workspace
+after updating. No native helper reinstall is needed.
+
 ## Search and document review (version 0.7)
 
 Applications now supports company/role search, readiness views, status,
@@ -108,8 +173,8 @@ Repeated captures preserve document history, including older Handshake search UR
    PDFs export automatically to your configured folder. Model results are saved
    **before** export, so a folder problem does not discard your drafts or require
    regeneration. Open the draft and use **Save PDFs to folder now** to retry.
-7. Use the exported PDFs to apply. Tracking controls are hidden by default and
-   optional; the extension does not interact with your email/spreadsheet tracker.
+7. Use the exported PDFs to apply. Manual status controls are hidden by default
+   and optional. **Progress tracker** separately reads your Google Sheet updates.
 
 Queueing captures a snapshot of the listing, saved profile, template, and approved
 planned projects. Changes made while a request runs do not alter that snapshot.
@@ -213,11 +278,12 @@ until you revoke it in browser extension settings. There are no content scripts
 running on websites in the background. Internal browser pages and inaccessible frames require manual
 pasting. It does not collect cookies or form values or submit applications.
 
-Profile, jobs, project proposals, and document versions (including compiled PDFs) live in `chrome.storage.local`, separate from
+Profile, jobs, project proposals, Sheet updates, and document versions (including compiled PDFs) live in `chrome.storage.local`, separate from
 the old project's CSV tracker. They are not encrypted or synced. **Export backup**
 creates a private JSON file including all saved application documents and profile
-information. **Restore a backup** merges applications by URL after confirmation;
-matching applications are replaced. Uninstalling the extension removes local data.
+information and tracker history. **Restore a backup** merges applications by URL
+and tracker records by their source identity after confirmation; matching records
+are replaced and restored Sheet sync stays disconnected. Uninstalling the extension removes local data.
 Restore is blocked while jobs are queued or running. Restoring documents does not
 replay old generation requests from the backup.
 The extension requests unlimited local storage for batch PDF histories; backups are still recommended.
@@ -256,6 +322,7 @@ npm --prefix extension test
 # Run from the repository root:
 venv/bin/python tests/browser_extension_smoke.py
 venv/bin/python extension/tests/handshake_browser.py
+venv/bin/python extension/tests/tracker_browser.py
 ```
 
 The smoke check uses a temporary browser profile and simulated model responses; it compiles the actual local templates with `pdflatex`. It covers persistence, fit snippets, duplicate
@@ -263,7 +330,17 @@ jobs, editable documents, print preview, version history, and helper errors. It 
 not use your Antigravity quota or establish live model quality or throughput. Native protocol,
 installer, input validation, template preservation, project escaping/approval, and generation command wiring have separate unit tests.
 
+The tracker browser test uses fixture CSV responses in an isolated profile. It
+covers mapping, sync/history, authentication failures, disconnect, CSV fallback,
+job matching, source links, both tracker views, theme persistence across pages,
+reduced motion, keyboard dialog dismissal, and layouts from 320 to 1440 pixels.
+It does not access a live Google account. Sheets parsing, schema validation,
+deduplication, conservative matching, and backup validation have unit coverage.
+
 References: [Brave extension support](https://support.brave.com/hc/en-us/articles/360017909112-How-can-I-add-extensions-to-Brave),
 [activeTab](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab),
 [native messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging),
+[extension network requests](https://developer.chrome.com/docs/extensions/develop/concepts/network-requests),
+[extension SameSite behavior](https://www.chromium.org/updates/same-site/faq/),
+[Google file downloads](https://support.google.com/docs/answer/49114),
 [Antigravity headless mode](https://antigravity.google/docs/cli/headless/).

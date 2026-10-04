@@ -3,6 +3,8 @@ import { withStore, jobs } from './store.js';
 import { icon, element } from './ui.js';
 import {defaultFilters, filterJobs, latestQueueByJob} from './filters.js';
 import {createPdfPreview} from './preview.js';
+import {initTracking} from './tracking-ui.js';
+import {restoreSheetBackup} from './sheets.js';
 const selectedJobs = new Set(), selectedTemplates = new Map();
 async function background(message) {
   const result = await chrome.runtime.sendMessage(message);
@@ -31,7 +33,8 @@ function panel(name) {
   const headings = {
     application: ['Application studio', 'FROM OPPORTUNITY TO APPLICATION', 'Make a lasting first impression', 'Your experience, thoughtfully tailored to what comes next.'],
     profile: ['Your profile', 'THE EXPERIENCE BEHIND EVERY APPLICATION', 'A story only you can tell', 'Start with what makes you, you. Bring it to every opportunity.'],
-    tracker: ['Applications', 'YOUR CAREER, IN MOTION', 'Your next chapter, in progress', 'Good opportunities deserve a little intention. Keep yours all in one place.']
+    tracker: ['Applications', 'YOUR CAREER, IN MOTION', 'Your next chapter, in progress', 'Good opportunities deserve a little intention. Keep yours all in one place.'],
+    tracking: ['Progress tracker', 'SMALL STEPS. NEW POSSIBILITIES.', 'See how far you’re going', 'From the first application to the next conversation. Every update, in one place.']
   };
   const [label, eyebrow, title, description] = headings[name];
   $('page-label').textContent = label; $('page-eyebrow').textContent = eyebrow;
@@ -91,6 +94,18 @@ function showDraft(version) {
   showExport(version.export_result);
   if (version.template) $('template').value = version.template;
   $('draft-context').textContent = `Drafts for ${version.job.company || 'this company'} — ${version.job.title}. Edits are saved to this application even if you change the listing above.${version.pdf_pages ? ` PDF: ${version.pdf_pages} page(s).${version.pdf_pages > 1 ? ' Shorten bullets or remove a planned project if you want one page, then recompile.' : ''}` : ''}`;
+}
+async function openSavedApplication(key, options = {}) {
+  if (generationBusy) throw new Error('Wait for generation to finish before opening another application.');
+  const latest = (await jobs())[key];
+  if (!latest) throw new Error('This saved application is no longer available.');
+  const version = latest.versions.find(v => v.id === options.versionId) || latest.versions.at(-1);
+  fill(jobFields, latest.job); $('capture-note').textContent = latest.job.captureNote || 'Loaded a saved application.';
+  $('template').value = options.template || version?.template || 'fpga';
+  if (version) showDraft(version);
+  else { draftSource = null; $('resume').value = ''; $('letter').value = ''; $('review-notes').textContent = ''; $('export-status').textContent = ''; pdfPreview.clear(); }
+  checks(); loadIdeas().catch(error => notify(error.message, true)); panel('application');
+  window.scrollTo({top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
 }
 function download(text, filename) {
   const url = URL.createObjectURL(new Blob([text], {type: 'text/plain;charset=utf-8'}));
@@ -172,13 +187,7 @@ async function renderTracker() {
     const open = document.createElement('button'); open.className = 'secondary open-application'; open.textContent = 'Open saved application'; open.append(icon('arrow'));
     open.onclick = async () => {
       try {
-      if (generationBusy) return notify('Wait for generation to finish before opening another application.', true);
-      const latest = (await jobs())[key];
-      const v = latest.versions.find(v => v.id === versions.value) || latest.versions.at(-1);
-      fill(jobFields, latest.job); $('capture-note').textContent = latest.job.captureNote || 'Loaded a saved application.';
-      $('template').value = template.value;
-      if (v) showDraft(v); else { draftSource = null; $('resume').value = ''; $('letter').value = ''; $('review-notes').textContent = ''; $('export-status').textContent = ''; pdfPreview.clear(); }
-      checks(); loadIdeas().catch(error => notify(error.message, true)); panel('application');
+      await openSavedApplication(key, {versionId: versions.value, template: template.value});
       } catch (error) { notify(error.message, true); }
     };
     actions.append(template, open);
@@ -416,13 +425,14 @@ for (const kind of ['resume', 'letter']) {
   on(`print-${kind}`, () => printDocument(kind));
   on(`download-${kind}`, async () => { if (!$(kind).value.trim()) throw new Error('No draft to download yet.'); if (kind === 'resume' && draftSource?.template) { const v = await compileDraft(draftSource.approved_projects || []); download(v.resume_tex, 'resume.tex'); } else download($(kind).value, `${kind}.txt`); });
 }
-on('backup', async () => { const data = await chrome.storage.local.get(null); download(JSON.stringify({format: 1, ...data}, null, 2), 'internship-desk-backup.json'); notify('Backup exported. It contains your profile and application documents.'); });
+on('backup', async () => { const data = await chrome.storage.local.get(null); download(JSON.stringify({format: 1, ...data}, null, 2), 'internship-desk-backup.json'); notify('Backup exported. It contains your profile, application documents, and tracker history.'); });
 $('restore').onchange = async event => {
   try {
     const file = event.target.files[0]; if (!file) return;
     if (file.size > 9000000) throw new Error('Backup is too large (9 MB maximum).');
     const data = JSON.parse(await file.text());
     if (data.format !== 1 || !data.jobs || typeof data.jobs !== 'object' || Array.isArray(data.jobs)) throw new Error('Invalid backup format.');
+    if (data.sheetTracker) restoreSheetBackup(data.sheetTracker);
     const validProfile = p => p && profileFields.every(k => typeof p[k] === 'string') && p.facts.length <= 90000 && p.skills.length <= 5000 && p.constraints.length <= 5000;
     if (data.profile && !validProfile(data.profile)) throw new Error('Invalid profile in backup.');
     for (const [key, r] of Object.entries(data.jobs)) {
@@ -443,12 +453,14 @@ $('restore').onchange = async event => {
       }
       restoredIdeas[key] = value;
     }
-    if (!confirm('Restore this backup? Matching applications and your profile will be replaced. Other applications will be kept.')) return;
+    if (!confirm('Restore this backup? Matching applications, tracker records, and your profile will be replaced. Other records will be kept. Restored Sheets sync stays disconnected.')) return;
     await withStore(async () => {
       const queue = (await chrome.storage.local.get('generationQueue')).generationQueue || [];
       if (queue.some(item => ['pending', 'running', 'saving'].includes(item.state))) throw new Error('Finish or remove queued jobs before restoring a backup.');
       await chrome.storage.local.set({...restoredIdeas, jobs: {...await jobs(), ...data.jobs}, ...(data.profile ? {profile: data.profile} : {})});
     });
+    // Do not hold the jobs lock while waking a worker that may need it for recovery.
+    if (data.sheetTracker) await background({action: 'sheet_restore', tracker: data.sheetTracker});
     profile = (await chrome.storage.local.get('profile')).profile || {}; fill(profileFields, profile); await renderTracker(); await loadIdeas(); notify('Backup restored.');
   } catch (error) { notify(error.message, true); }
   event.target.value = '';
@@ -459,7 +471,8 @@ async function init() {
   profile = (await chrome.storage.local.get('profile')).profile || {}; fill(profileFields, profile);
   filters = {...defaultFilters, ...(await chrome.storage.local.get('opportunityFilters')).opportunityFilters}; showFilters();
   const params = new URL(location.href).searchParams;
-  if (params.get('panel') === 'tracker') panel('tracker');
+  if (['tracker', 'tracking', 'profile', 'application'].includes(params.get('panel'))) panel(params.get('panel'));
+  initTracking({request: background, openApplication: openSavedApplication});
   const id = params.get('capture');
   if (id) { const capture = (await chrome.storage.session.get(id))[id]; if (capture) { fill(jobFields, capture); $('capture-note').textContent = capture.captureNote + (capture.truncated ? ' Text was truncated at 60,000 characters.' : ''); checks(); } }
   await renderTracker(); await loadIdeas(); await loadExportSettings();

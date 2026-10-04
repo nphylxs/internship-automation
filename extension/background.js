@@ -5,6 +5,10 @@ import { createQueue } from './queue.js';
 import { createCapture } from './capture.js';
 import { createCollector } from './collector.js';
 import { nextHandshakeJob } from './navigation.js';
+import {createSheetSync} from './sheet-sync.js';
+
+const sheetSync = createSheetSync({storage: chrome.storage.local,
+  lock: task => navigator.locks.request('internship-desk-sheets', task), permissions: chrome.permissions, alarms: chrome.alarms});
 
 const queue = createQueue({storage: chrome.storage.local, lock: withStore, native: nativeRequest});
 const saveCapture = createCapture({storage: chrome.storage.local, lock: withStore, queue});
@@ -25,6 +29,7 @@ const ready = (async () => {
   await chrome.storage.local.setAccessLevel({accessLevel: 'TRUSTED_CONTEXTS'});
   await queue.recover();
   await collector.recover();
+  await sheetSync.schedule();
 })();
 async function wake() {
   await ready;
@@ -33,7 +38,10 @@ async function wake() {
 }
 chrome.runtime.onStartup.addListener(() => { void wake(); });
 chrome.runtime.onInstalled.addListener(() => { void wake(); });
-chrome.alarms.onAlarm.addListener(alarm => { if (alarm.name === 'application-queue') void wake(); });
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'application-queue') void wake();
+  if (alarm.name === 'sheet-tracker') void ready.then(() => sheetSync.sync()).catch(() => {}); // Sync errors remain visible in the tracker.
+});
 
 async function captureTabs(tabIds, options = {}) {
   if (!Array.isArray(tabIds) || !tabIds.length || tabIds.length > 100 || !tabIds.every(Number.isInteger)) throw new Error('Select between 1 and 100 job tabs.');
@@ -82,6 +90,13 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       case 'enqueue': return queue.enqueue(message.requests);
       case 'queue_change': await queue.change(message.operation, message.id, message.value); return {};
       case 'queue_wake': await wake(); return {};
+      case 'sheet_preview': return sheetSync.preview(message.url);
+      case 'sheet_connect': return sheetSync.connect(message.config);
+      case 'sheet_import': return sheetSync.connect(message.config, message.csv);
+      case 'sheet_sync': return sheetSync.sync();
+      case 'sheet_disconnect': await sheetSync.disconnect(); return {};
+      case 'sheet_bind': await sheetSync.bind(message.id, message.key); return {};
+      case 'sheet_restore': await sheetSync.restore(message.tracker); return {};
       default: throw new Error('Unknown extension request.');
     }
   })().then(result => respond({ok: true, ...result}), error => respond({error: error.message}));
