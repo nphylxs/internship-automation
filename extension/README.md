@@ -28,6 +28,20 @@ Chromium, add `--browser chrome` or `--browser chromium`. Linux and macOS host
 registration are supported; Windows registration is not implemented. Flatpak/Snap
 browser sandbox packages may require native messaging integration outside this installer.
 
+## Search and document review (version 0.7)
+
+Applications now supports company/role search, readiness views, status,
+discipline mentions, location, deadline filters, and sorting. Filters are remembered
+locally. **Select visible** selects only matching rows; changing a filter clears
+selection so hidden jobs cannot be prepared accidentally. Summary counts cover
+all saved opportunities.
+
+Open an application to review its compiled resume PDF next to the editable cover
+letter. **Advanced editing** reveals the LaTeX source. After source changes,
+**Refresh preview** compiles the updated PDF; **Save edited drafts** keeps a new
+version. The preview never calls the model. **Open template PDF** remains available
+if embedded PDF viewing is disabled in your browser.
+
 ## Workspace refresh (version 0.6)
 
 The popup and workspace share a new cream-and-green design, with sidebar

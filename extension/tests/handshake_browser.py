@@ -109,6 +109,17 @@ async def main():
       await workspace.goto(f'chrome-extension://{extension_id}/workspace.html?panel=tracker')
       await workspace.wait_for_function("() => document.querySelector('#stat-saved').textContent === '4'")
       assert await workspace.locator('#stat-ready').inner_text() == '4'
+      await workspace.locator('#filter-query').fill('Engineering Intern 2')
+      await workspace.wait_for_function("() => document.querySelectorAll('#jobs .job').length === 1")
+      await workspace.locator('#select-all').click()
+      await workspace.wait_for_function("() => document.querySelector('#selection-count').textContent === '1 selected'")
+      await workspace.locator('#reset-filters').click()
+      await workspace.wait_for_function("() => document.querySelectorAll('#jobs .job').length === 4")
+      assert await workspace.locator('#selection-count').inner_text() == '0 selected'
+      await workspace.locator('[data-view="attention"]').click()
+      await workspace.wait_for_function("() => document.querySelector('#jobs').textContent.includes('No opportunities match')")
+      await workspace.locator('#reset-filters').click()
+      await workspace.wait_for_function("() => document.querySelectorAll('#jobs .job').length === 4")
       assert await workspace.locator('#queue-selected').is_disabled()
       await workspace.locator('#select-all').click()
       await workspace.wait_for_function("() => document.querySelector('#selection-count').textContent === '4 selected'")

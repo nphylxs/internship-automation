@@ -1,6 +1,8 @@
 import { canonicalUrl, assess } from './core.js';
 import { withStore, jobs } from './store.js';
 import { icon, element } from './ui.js';
+import {defaultFilters, filterJobs, latestQueueByJob} from './filters.js';
+import {createPdfPreview} from './preview.js';
 const selectedJobs = new Set(), selectedTemplates = new Map();
 async function background(message) {
   const result = await chrome.runtime.sendMessage(message);
@@ -8,6 +10,9 @@ async function background(message) {
   return result;
 }
 const $ = id => document.getElementById(id);
+const pdfPreview = createPdfPreview({frame: $('resume-preview'), empty: $('resume-preview-empty'), note: $('preview-note')});
+let visibleJobKeys = [], trackerRender = 0;
+let filters = {...defaultFilters};
 const jobFields = ['title', 'company', 'url', 'location', 'deadline', 'description'];
 const profileFields = ['facts', 'skills', 'constraints'];
 const statuses = ['Saved', 'Applied', 'Interview', 'Offer', 'Rejected', 'Withdrawn'];
@@ -82,6 +87,7 @@ function showDraft(version) {
   $('resume').value = version.resume; $('letter').value = version.letter;
   $('review-notes').textContent = `CHANGES\n${(version.changes || []).join('\n')}\n\nREVIEW BEFORE APPLYING\n${(version.review_notes || []).join('\n')}`;
   draftSource = version;
+  pdfPreview.show(version); pdfPreview.dirty(false);
   showExport(version.export_result);
   if (version.template) $('template').value = version.template;
   $('draft-context').textContent = `Drafts for ${version.job.company || 'this company'} — ${version.job.title}. Edits are saved to this application even if you change the listing above.${version.pdf_pages ? ` PDF: ${version.pdf_pages} page(s).${version.pdf_pages > 1 ? ' Shorten bullets or remove a planned project if you want one page, then recompile.' : ''}` : ''}`;
@@ -107,8 +113,15 @@ async function printDocument(kind) {
   await chrome.tabs.create({url: chrome.runtime.getURL(`print.html?id=${id}`)});
 }
 async function renderTracker() {
-  const all = await jobs(); const queue = await renderQueue(); $('count').textContent = Object.keys(all).length; $('jobs').replaceChildren();
-  const latestQueue = new Map(queue.map(item => [canonicalUrl(item.key), item]));
+  const render = ++trackerRender;
+  const all = await jobs(); const queue = await renderQueue();
+  if (render !== trackerRender) return;
+  $('count').textContent = Object.keys(all).length; $('jobs').replaceChildren();
+  const latestQueue = latestQueueByJob(queue);
+  const visible = filterJobs(all, queue, filters);
+  visibleJobKeys = visible.map(([key]) => key);
+  for (const key of selectedJobs) if (!visibleJobKeys.includes(key)) selectedJobs.delete(key);
+  $('filter-results').textContent = `${visible.length} of ${Object.keys(all).length} opportunities`;
   $('stat-saved').textContent = Object.keys(all).length;
   $('stat-ready').textContent = Object.values(all).filter(record => record.versions.length).length;
   $('stat-processing').textContent = new Set(queue.filter(item => ['pending', 'running', 'saving'].includes(item.state)).map(item => canonicalUrl(item.key))).size;
@@ -121,7 +134,11 @@ async function renderTracker() {
     const start = element('button', 'secondary', 'Add your first listing'); start.append(icon('plus')); start.onclick = () => panel('application');
     empty.append(start); $('jobs').append(empty); return;
   }
-  for (const [key, record] of Object.entries(all).sort((a,b) => b[1].updated.localeCompare(a[1].updated))) {
+  if (!visible.length) {
+    const empty = element('div', 'empty-state'); empty.append(element('h3', '', 'No opportunities match these filters.'), element('p', '', 'Try another company, role, location, or view.'));
+    const reset = element('button', 'secondary', 'Clear filters'); reset.onclick = resetFilters; empty.append(reset); $('jobs').append(empty);
+  }
+  for (const [key, record] of visible) {
     const row = document.createElement('article'); row.className = 'job application-card'; row.classList.toggle('selected', selectedJobs.has(key));
     const pick = document.createElement('input'); pick.type = 'checkbox'; pick.checked = selectedJobs.has(key);
     pick.setAttribute('aria-label', `Select ${record.job.title}`);
@@ -160,7 +177,7 @@ async function renderTracker() {
       const v = latest.versions.find(v => v.id === versions.value) || latest.versions.at(-1);
       fill(jobFields, latest.job); $('capture-note').textContent = latest.job.captureNote || 'Loaded a saved application.';
       $('template').value = template.value;
-      if (v) showDraft(v); else { draftSource = null; $('resume').value = ''; $('letter').value = ''; $('review-notes').textContent = ''; }
+      if (v) showDraft(v); else { draftSource = null; $('resume').value = ''; $('letter').value = ''; $('review-notes').textContent = ''; $('export-status').textContent = ''; pdfPreview.clear(); }
       checks(); loadIdeas().catch(error => notify(error.message, true)); panel('application');
       } catch (error) { notify(error.message, true); }
     };
@@ -216,7 +233,7 @@ async function renderQueue() {
   }
   return queue;
 }
-on('select-all', async () => { for (const key of Object.keys(await jobs())) selectedJobs.add(key); await renderTracker(); });
+on('select-all', async () => { for (const key of visibleJobKeys) selectedJobs.add(key); await renderTracker(); });
 on('clear-selection', async () => { selectedJobs.clear(); await renderTracker(); });
 $('show-tracking').onchange = () => renderTracker().catch(error => notify(error.message, true));
 async function saveQueueSettings() {
@@ -244,6 +261,29 @@ chrome.storage.onChanged.addListener((changes, area) => {
   refreshTimer = setTimeout(() => renderTracker().catch(error => notify(error.message, true)), 100);
 });
 function signature(job) { return JSON.stringify(jobFields.map(key => key === 'url' ? canonicalUrl(job[key]) : job[key] || '')); }
+function showFilters() {
+  for (const key of ['query', 'status', 'discipline', 'location', 'deadline', 'sort']) $('filter-' + key).value = filters[key];
+  document.querySelectorAll('[data-view]').forEach(button => { button.classList.toggle('active', button.dataset.view === filters.view); button.setAttribute('aria-pressed', String(button.dataset.view === filters.view)); });
+}
+async function applyFilters() {
+  selectedJobs.clear(); showFilters();
+  await chrome.storage.local.set({opportunityFilters: filters}); await renderTracker();
+}
+async function resetFilters() { filters = {...defaultFilters}; await applyFilters(); }
+for (const key of ['query', 'status', 'discipline', 'location', 'deadline', 'sort']) {
+  $('filter-' + key).addEventListener(['query', 'location'].includes(key) ? 'input' : 'change', () => {
+    filters[key] = $('filter-' + key).value; void applyFilters().catch(error => notify(error.message, true));
+  });
+}
+document.querySelectorAll('[data-view]').forEach(button => button.onclick = () => { filters.view = button.dataset.view; void applyFilters().catch(error => notify(error.message, true)); });
+on('reset-filters', resetFilters);
+$('resume').addEventListener('input', () => pdfPreview.dirty(Boolean(draftSource && $('resume').value !== draftSource.resume)));
+on('refresh-preview', async () => {
+  if (!draftSource?.template) throw new Error('Open a saved template draft or prepare an application first.');
+  await compileDraft(draftSource.approved_projects || []);
+  notify('PDF preview refreshed. Save edited drafts to keep this version.');
+});
+window.addEventListener('pagehide', () => pdfPreview.clear());
 function currentApproved(job) {
   return signature(job) === projectSignature ? projectIdeas.filter(p => p.approved).map(p => ({title: p.title, scope: p.scope, approved: true})) : [];
 }
@@ -417,6 +457,7 @@ window.addEventListener('beforeunload', event => { if (generationBusy) { event.p
 async function init() {
   await chrome.storage.local.setAccessLevel({accessLevel: 'TRUSTED_CONTEXTS'});
   profile = (await chrome.storage.local.get('profile')).profile || {}; fill(profileFields, profile);
+  filters = {...defaultFilters, ...(await chrome.storage.local.get('opportunityFilters')).opportunityFilters}; showFilters();
   const params = new URL(location.href).searchParams;
   if (params.get('panel') === 'tracker') panel('tracker');
   const id = params.get('capture');

@@ -98,6 +98,12 @@ async def main():
       export_status = await page.locator('#export-status').inner_text()
       assert 'PDFs saved automatically' in export_status, export_status
       assert len(list((Path(profile) / 'application-pdfs').rglob('*.pdf'))) == 2
+      assert (await page.locator('#resume-preview').get_attribute('src')).startswith('blob:')
+      assert await page.locator('#resume').is_hidden()
+      await page.set_viewport_size({'width':1440,'height':1100})
+      await page.locator('.documents').scroll_into_view_if_needed()
+      await page.screenshot(path='/tmp/internship-desk-pdf-preview.png', animations='disabled')
+      await page.locator('#resume-source summary').click()
       await page.locator('#resume').fill((await page.locator('#resume').input_value()).replace(r'\end{document}', '% Edited version\n'+r'\end{document}'))
       await page.locator('#save-drafts').click()
       await page.wait_for_function("() => document.querySelector('#notice').textContent.includes('Edited drafts saved')")
