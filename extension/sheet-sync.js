@@ -37,7 +37,7 @@ export function createSheetSync({storage, lock, fetcher = (...args) => fetch(...
   }
   async function preview(url) {
     const source = sheetSource(url), table = await read(source);
-    return {source, headers: table.headers, sample: table.rows.slice(0, 5), count: table.rows.length, mapping: guessMapping(table.headers)};
+    return {source, headers: table.headers, headerRow: table.headerRow, sample: table.rows.slice(0, 5), count: table.rows.length, mapping: guessMapping(table.headers)};
   }
   async function connect(config, csv) {
     return serial(async () => {

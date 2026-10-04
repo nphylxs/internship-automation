@@ -28,7 +28,7 @@ export function initTracking({request, openApplication}) {
   }
   function showPreview(result) {
     preview = result; $('sheet-mapping').hidden = false; $('sheet-mapping-fields').replaceChildren();
-    $('sheet-preview-summary').textContent = `${result.count} data rows found. Check these fields before importing. Company, role, and status are required.`;
+    $('sheet-preview-summary').textContent = `${result.count} data rows found.${result.headerRow > 1 ? ` Table headers detected on row ${result.headerRow}; title and summary rows are excluded.` : ''} Check these fields before importing. Company, role, and status are required.`;
     for (const [key, aliases] of Object.entries(sheetFields)) {
       const label = element('label', '', aliases[0] + (['company', 'title', 'status'].includes(key) ? ' *' : ''));
       const select = element('select'); select.dataset.mapping = key; select.setAttribute('aria-label', `${aliases[0]} column`);
@@ -59,7 +59,7 @@ export function initTracking({request, openApplication}) {
     void action(async () => {
       if (file.size > 2000000) throw new Error('Choose a CSV smaller than 2 MB.');
       const csv = await file.text(), table = parseCSV(csv);
-      showPreview({csv, headers: table.headers, sample: table.rows.slice(0, 5), count: table.rows.length, mapping: guessMapping(table.headers)});
+      showPreview({csv, headers: table.headers, headerRow: table.headerRow, sample: table.rows.slice(0, 5), count: table.rows.length, mapping: guessMapping(table.headers)});
     }, 'Reading the CSV…').finally(() => { event.target.value = ''; });
   });
   $('sheet-connect').onclick = () => action(async () => {

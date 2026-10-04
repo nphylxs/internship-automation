@@ -7,6 +7,7 @@ import tempfile
 from playwright.async_api import async_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
+FORMATTED_CSV = (ROOT / 'tests/fixtures/formatted-tracker.csv').read_text()
 CSV = '''Company,Role,Status,Updated,Job URL,Email URL,Notes,Next step,Application ID
 Northstar Energy,Electrical Engineering Intern,Applied,2026-09-21,https://app.joinhandshake.com/jobs/1,,Application received.,,north1
 Northstar Energy,Electrical Engineering Intern,Interview scheduled,2026-10-02,https://app.joinhandshake.com/jobs/1,https://mail.google.com/mail/u/0/#inbox/test,The team would love to meet you.,Prepare two projects to discuss.,north1
@@ -164,8 +165,31 @@ async def main():
             await popup.set_viewport_size({'width':320,'height':600})
             assert await popup.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
             assert await popup.evaluate("document.querySelector('#workspace').getBoundingClientRect().bottom <= window.innerHeight")
+            # The user's formatted tracker has a dashboard before its row-8 table.
+            # Test with anonymized data matching that layout, through the actual Sheets preview flow.
+            await page.set_viewport_size({'width':1440,'height':1000})
+            await worker.evaluate('csv => { globalThis.sheetCsv = csv; }', FORMATTED_CSV)
+            await page.locator('#sheet-url').fill('https://docs.google.com/spreadsheets/d/fixture_sheet/edit#gid=7')
+            await page.locator('#sheet-preview').click()
+            await page.wait_for_function("() => document.querySelector('#sheet-preview-summary').textContent.includes('row 8')")
+            assert await page.get_by_label('Role column', exact=True).input_value() == '2'
+            assert await page.get_by_label('Date / term column', exact=True).input_value() == '4'
+            await page.locator('#sheet-mapping').scroll_into_view_if_needed()
+            await page.screenshot(path='/tmp/internship-desk-formatted-tracker-preview.png', animations='disabled')
+            await page.locator('#sheet-connect').click()
+            await page.wait_for_function("() => document.querySelector('#sheet-state').textContent.includes('Every 15 minutes')")
+            # Old applications from this source remain as retained history; only 6 new rows are current.
+            current = await worker.evaluate("async () => Object.values((await chrome.storage.local.get('sheetTracker')).sheetTracker.records).filter(r => r.sourceKey === 'fixture_sheet:7' && r.present)")
+            assert len(current) == 6
+            # chrome.storage may return object keys in a different order.
+            assert sorted(r['status'] for r in current) == sorted(['In review','In review','Rejected','Interview','Applied','Applied'])
+            assert all(r['status'] == 'In review' for r in current if r['company'] == 'Northstar Labs')
+            assert sorted(r['date'] for r in current) == ['2024','2024','2025','Sep 18 2026','Sep 18 2026','Sep 18 2026']
+            assert not any(r['dateUncertain'] for r in current)
+            await page.locator('#sheet-sync').click()
+            await page.wait_for_function("() => document.querySelector('#sheet-feedback').textContent.includes('Up to date')")
             assert not errors, errors
-            print(json.dumps({'checks':['Sheet preview and column mapping','CSV fallback','repeat sync and preserved error state','15-minute alarm and disconnect','history and job matching','source links','filters and board','light/dark/system propagation','all panels at 320–1440px','popup footer','keyboard dialog close','reduced motion','tracker backup/restore','white print pages in dark mode','column mapping at 320px'], 'errors': errors}))
+            print(json.dumps({'checks':['Sheet preview and column mapping','CSV fallback','repeat sync and preserved error state','15-minute alarm and disconnect','history and job matching','source links','filters and board','light/dark/system propagation','all panels at 320–1440px','popup footer','keyboard dialog close','reduced motion','tracker backup/restore','white print pages in dark mode','column mapping at 320px','formatted row-8 tracker and date terms'], 'errors': errors}))
             await context.close()
 
 asyncio.run(main())

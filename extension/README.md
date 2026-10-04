@@ -48,6 +48,22 @@ back to saved applications and their document versions.
    refreshes immediately. Scheduled sync runs while the browser is open; browser
    sleep can delay an alarm. Last successful sync and errors stay visible.
 
+Version 0.8.1 also reads formatted tracker sheets with a title and summary dashboard
+above the table. It searches the first 50 worksheet rows for **Company**, a role
+column, and **Status** together. The preview identifies the detected header row;
+earlier title, summary, and blank rows are excluded from imported applications.
+For the **Internship Applications Tracker** layout, the table starts on row 8:
+**Company**, **Position / Role**, **Status**, **Date / Term**, and **Notes**. These
+columns map automatically, including the blank leading column. Summary counts
+above the table may change without breaking subsequent syncs.
+
+**Applied / Under Review** maps to **In review**, and **Interview Invited** maps to
+**Interview**; the original status text remains in the application details.
+Dates such as `Sep 18 2026` can be ordered chronologically. Year-only values such
+as `2024` and `2025`, and terms such as `Summer 2027`, remain as written instead of
+becoming invented exact dates. They do not cause a date warning for a single
+application row. Multiple updates without exact dates still use Sheet row order.
+
 The connection reads Google's CSV export with the browser's existing Google
 session. It does not ask you to publish the Sheet, store an access token, read your
 inbox, or edit the Sheet. Private access depends on the account, browser cookie
@@ -334,7 +350,9 @@ The tracker browser test uses fixture CSV responses in an isolated profile. It
 covers mapping, sync/history, authentication failures, disconnect, CSV fallback,
 job matching, source links, both tracker views, theme persistence across pages,
 reduced motion, keyboard dialog dismissal, and layouts from 320 to 1440 pixels.
-It does not access a live Google account. Sheets parsing, schema validation,
+It does not access a live Google account. Its anonymized formatted-tracker fixture
+also covers row-8 headers, summary exclusion, date/term mapping, and subsequent
+sync. Sheets parsing, schema validation,
 deduplication, conservative matching, and backup validation have unit coverage.
 
 References: [Brave extension support](https://support.brave.com/hc/en-us/articles/360017909112-How-can-I-add-extensions-to-Brave),

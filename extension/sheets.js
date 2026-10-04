@@ -2,9 +2,9 @@ import {canonicalUrl} from './core.js';
 
 export const sheetFields = {
   company: ['Company', 'company name', 'employer', 'organization'],
-  title: ['Role', 'title', 'job title', 'position', 'position title', 'job role'],
+  title: ['Role', 'title', 'job title', 'role title', 'position', 'position title', 'job role', 'position / role'],
   status: ['Status', 'application status', 'current status', 'stage', 'latest status'],
-  date: ['Updated', 'date', 'updated at', 'last updated', 'update date', 'email date', 'timestamp', 'date received'],
+  date: ['Date / term', 'updated', 'date', 'updated at', 'last updated', 'update date', 'email date', 'timestamp', 'date received'],
   jobUrl: ['Job URL', 'job link', 'listing url', 'application url', 'posting url'],
   emailUrl: ['Email URL', 'email link', 'gmail link', 'message link', 'source email'],
   notes: ['Notes', 'summary', 'email summary', 'details', 'update', 'latest update'],
@@ -29,10 +29,16 @@ export function sheetSource(value) {
 export function parseCSV(text) {
   if (typeof text !== 'string' || text.length > 2000000) throw new Error('Use a CSV smaller than 2 MB.');
   if (/^\s*(?:<!doctype\s+html|<html)/i.test(text)) throw new Error('Google returned a sign-in page. Open this Sheet in the same browser profile, sign in, then try again. You can also import a downloaded CSV.');
-  const rows = []; let row = [], field = '', quoted = false, closed = false;
+  const rows = [], rowNumbers = []; let row = [], field = '', quoted = false, closed = false, rowNumber = 0;
   const value = text.replace(/^\uFEFF/, '');
   const pushField = () => { row.push(field); field = ''; closed = false; if (row.length > 100) throw new Error('Use a worksheet with at most 100 columns.'); };
-  const pushRow = () => { pushField(); if (row.some(v => v.trim())) rows.push(row); row = []; if (rows.length > 5001) throw new Error('Use a worksheet with at most 5,000 data rows.'); };
+  const pushRow = () => {
+    pushField(); rowNumber++;
+    if (row.some(v => v.trim())) { rows.push(row); rowNumbers.push(rowNumber); }
+    row = [];
+    // Allow a title/dashboard above the table without counting it as application data.
+    if (rows.length > 5050) throw new Error('Use a worksheet with at most 5,000 data rows.');
+  };
   for (let i = 0; i < value.length; i++) {
     const c = value[i];
     if (quoted) { if (c === '"') { if (value[i + 1] === '"') { field += '"'; i++; } else { quoted = false; closed = true; } } else field += c; }
@@ -44,9 +50,16 @@ export function parseCSV(text) {
   if (quoted) throw new Error('The CSV ends inside a quoted cell. Download it again from Sheets.');
   if (field || row.length || closed) pushRow();
   if (!rows.length) throw new Error('The worksheet is empty. Add column headers and application updates first.');
-  const headers = rows.shift().map(h => h.trim());
-  if (rows.some(r => r.length > headers.length)) throw new Error('Some rows have more cells than the header. Check the CSV columns.');
-  return {headers, rows};
+  // A formatted tracker may have a title, summary metrics, and blank rows/columns.
+  // Require all three essential headers together so data and dashboard rows cannot
+  // win on a single familiar word. Keep the first row fallback for custom mappings.
+  const detected = rows.findIndex((r, i) => rowNumbers[i] <= 50 && ['company', 'title', 'status'].every(key => guessMapping(r)[key] >= 0));
+  const headerIndex = detected < 0 ? 0 : detected;
+  const headers = rows[headerIndex].map(h => h.trim());
+  const data = rows.slice(headerIndex + 1);
+  if (data.length > 5000) throw new Error('Use a worksheet with at most 5,000 data rows.');
+  if (data.some(r => r.length > headers.length)) throw new Error('Some rows have more cells than the header. Check the CSV columns.');
+  return {headers, rows: data, headerRow: rowNumbers[headerIndex]};
 }
 export function guessMapping(headers) {
   return Object.fromEntries(Object.entries(sheetFields).map(([key, aliases]) => [key, headers.findIndex(h => aliases.map(normalized).includes(normalized(h)))]));
@@ -76,11 +89,15 @@ export function dateValue(value) {
   if (!/^\d{4}-\d{2}-\d{2}(?:$|[T\s])/.test(value) && !/[a-z]{3}/i.test(value)) return 0;
   return Number.isFinite(Date.parse(value)) ? Date.parse(value) : 0;
 }
+export function isDateTerm(value) {
+  // Terms describe an application cycle, not a day on which an email arrived.
+  return /^(?:\d{4}|(?:spring|summer|fall|autumn|winter)\s+\d{4})$/i.test(value.trim());
+}
 export function ingestSheet(previous, table, source, now = new Date().toISOString()) {
   validateMapping(table.headers, source.mapping);
   const records = structuredClone(previous?.records || {});
   for (const record of Object.values(records)) if (record.sourceKey === source.key) record.present = false;
-  const groups = new Map(); let skipped = 0, undated = 0;
+  const groups = new Map(); let skipped = 0, undated = 0, terms = 0;
   for (const [index, row] of table.rows.entries()) {
     const values = Object.fromEntries(Object.keys(sheetFields).map(k => [k, (row[source.mapping[k]] || '').trim()]));
     if (!values.company || !values.title) { skipped++; continue; }
@@ -88,7 +105,8 @@ export function ingestSheet(previous, table, source, now = new Date().toISOStrin
     const identity = values.applicationId ? ['id', normalized(values.company), values.applicationId] : url ? ['url', url] : ['role', normalized(values.company), normalized(values.title)];
     const id = JSON.stringify([source.key, ...identity]);
     const event = {status: stageFor(values.status), rawStatus: values.status || 'No status provided', date: values.date, notes: values.notes, nextStep: values.nextStep, emailUrl: safeLink(values.emailUrl)};
-    if (!dateValue(values.date)) undated++;
+    if (isDateTerm(values.date)) terms++;
+    else if (!dateValue(values.date)) undated++;
     const eventKey = JSON.stringify(event);
     if (!groups.has(id)) groups.set(id, []);
     groups.get(id).push({...values, id, index, url, event: {...event, id: eventKey, seenAt: now}});
@@ -102,9 +120,9 @@ export function ingestSheet(previous, table, source, now = new Date().toISOStrin
     // Retain the latest 100 distinct observations, including older statuses removed from the Sheet.
     records[id] = {...old, id, sourceKey: source.key, company: last.company, title: last.title, jobUrl: last.url, ...last.event, id,
       events: [...events.values()].slice(-100), present: true, syncedAt: now, binding: old?.binding || '',
-      dateUncertain: group.some(item => !dateValue(item.date)), currentEvent: last.event.id, changedAt: old?.currentEvent === last.event.id ? old.changedAt : now};
+      dateUncertain: group.length > 1 && group.some(item => !dateValue(item.date)), currentEvent: last.event.id, changedAt: old?.currentEvent === last.event.id ? old.changedAt : now};
   }
-  return {...previous, source: {...source, headers: table.headers}, records, lastSync: now, lastAttempt: now, error: '', rows: table.rows.length, skipped, undated};
+  return {...previous, source: {...source, headers: table.headers, headerRow: table.headerRow || 1}, records, lastSync: now, lastAttempt: now, error: '', rows: table.rows.length, skipped, undated, terms};
 }
 export function matchApplication(record, jobs) {
   if (record.binding === 'standalone') return {kind: 'standalone', key: ''};
