@@ -1,3 +1,18 @@
+# Internship Desk browser extension
+
+The browser-first version is on `feature/brave-application-assistant`.
+Use it in desktop Brave to save listings with a shortcut, collect selected open
+job tabs, and prepare resume and cover-letter drafts in a persistent background
+queue. Optional parallel generation supports two applications at a time. Tracking
+controls are optional and hidden by default.
+
+**[Install and use the extension](extension/README.md)**. It reuses your signed-in
+Antigravity CLI through a local native messaging helper. No separate API key is needed.
+
+The earlier collection and command-line workflow remains below for reference.
+
+---
+
 # Internship automation
 
 Collect hardware internships, keep employer work-authorization evidence, and use
