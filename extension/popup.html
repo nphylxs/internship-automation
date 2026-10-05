@@ -1,24 +1,13 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Internship Desk</title><script src="theme.js"></script><link rel="stylesheet" href="workspace.css"><link rel="stylesheet" href="popup.css"><link rel="stylesheet" href="theme.css"></head>
-<body class="popup">
-<header class="popup-header"><div class="brand"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="icons.svg#desk"/></svg></span><span>Internship<span class="brand-light"> Desk</span></span></div><label class="theme-control"><span class="sr-only">Color theme</span><select data-theme-picker aria-label="Color theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label></header>
-<main class="popup-main">
-  <div class="popup-intro"><div><span class="eyebrow">ONE OPPORTUNITY AT A TIME</span><h1>Your next move<br>starts here<span class="accent">.</span></h1></div><span class="intro-spark" aria-hidden="true"><svg class="icon"><use href="icons.svg#spark"/></svg></span></div>
-  <section class="capture-card" aria-label="Save a listing">
-    <div class="capture-options"><label class="toggle-label"><input id="prepare-on-save" type="checkbox" checked><span class="switch" aria-hidden="true"></span><span>Prepare application drafts<small>Resume + cover letter, using your saved profile</small></span></label></div>
-    <div class="template-line"><label for="capture-template">Resume template</label><select id="capture-template"><option value="fpga">FPGA</option><option value="robotics">Robotics</option><option value="power">Power</option></select></div>
-    <button id="save-current" class="primary-wide">Save & prepare this listing</button>
-    <div class="shortcut-note"><span>Save from any listing</span><span><kbd>Alt</kbd> <kbd>Shift</kbd> <kbd>S</kbd></span></div>
-  </section>
-  <section class="collection-card" aria-label="Automatic collection">
-    <div class="collection-heading"><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="icons.svg#desk"/></svg></span><div><h2>Let the next jobs come to you.</h2><p>Automatically collect your Handshake results.</p></div></div>
-    <div class="collection-controls"><label for="collect-limit">Up to<input id="collect-limit" type="number" min="1" max="100" value="10" aria-label="Maximum listings, including this job"></label><button id="collect-start">Start automatic collection</button><button id="collect-stop" class="danger" hidden>Stop collection</button></div>
-    <p class="collection-hint">Expands descriptions. Moves to the next job. Keep the job tab open.</p>
-    <p id="collection-status" role="status" aria-live="polite"></p>
-  </section>
-  <button id="choose-tabs" class="text-button"><svg class="icon" aria-hidden="true"><use href="icons.svg#grid"/></svg>Choose open job tabs…<span aria-hidden="true">↗</span></button>
-  <section id="batch" class="capture-card" hidden><p class="muted">Choose job pages to save. The browser asks for access to their sites.</p><div id="tabs"></div><button id="save-selected">Save selected tabs</button></section>
-  <p id="popup-notice" role="status" aria-live="polite"></p>
-</main>
-<footer class="popup-footer"><div class="popup-counts"><span><i class="status-dot"></i><strong id="popup-ready-count">0</strong> ready to review</span><span><strong id="popup-working-count">0</strong> in progress</span></div><p id="preparation-status" class="sr-only" role="status" aria-live="polite"></p><p id="preparation-alert" class="status-alert" hidden></p><button id="workspace" class="secondary">Open applications & queue<svg class="icon" aria-hidden="true"><use href="icons.svg#arrow"/></svg></button></footer>
-<script type="module" src="popup.js"></script></body></html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Internship Desk</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

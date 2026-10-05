@@ -1,1 +1,19 @@
-{"private":true,"type":"module","scripts":{"test":"node --test ../tests/extension*.test.mjs tests/*.test.mjs"}}
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test ../tests/extension*.test.mjs tests/*.test.mjs",
+    "build": "node scripts/build.mjs",
+    "test:autofill": "node --test tests/autofill.test.mjs"
+  },
+  "dependencies": {
+    "framer-motion": "14.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "esbuild": "0.28.2",
+    "tailwindcss": "4.3.3"
+  }
+}

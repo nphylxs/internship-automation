@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Internship Desk",
+  "version": "1.0.0",
+  "minimum_chrome_version": "110",
+  "description": "Shortlist internships, review tailored documents, and track each application in one place.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "nativeMessaging",
+    "alarms",
+    "unlimitedStorage"
+  ],
+  "optional_permissions": [
+    "tabs"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_title": "Save internships and prepare applications",
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "save-listing": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "Save the current internship without leaving the page"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "workspace.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; frame-src 'self' blob:"
+  }
+}

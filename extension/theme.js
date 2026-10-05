@@ -1,8 +1,8 @@
 // Apply the cached preference before first paint; storage keeps open views in sync.
 (() => {
   const valid = value => ['system', 'light', 'dark'].includes(value);
-  let preference = 'system';
-  try { const saved = localStorage.getItem('desk-theme'); if (valid(saved)) preference = saved; } catch { /* System theme works without a cache. */ }
+  let preference = 'dark';
+  try { const saved = localStorage.getItem('desk-theme'); if (valid(saved)) preference = saved; } catch { /* The default theme works without a cache. */ }
   const media = matchMedia('(prefers-color-scheme: dark)');
   function apply() {
     document.documentElement.dataset.theme = preference === 'system' ? media.matches ? 'dark' : 'light' : preference;

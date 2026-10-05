@@ -1,11 +1,16 @@
 import { extractJob } from './extract.js';
 import { withStore } from './store.js';
+import {migratePdfs} from './documents.js';
 import { nativeRequest } from './native.js';
 import { createQueue } from './queue.js';
 import { createCapture } from './capture.js';
 import { createCollector } from './collector.js';
 import { nextHandshakeJob } from './navigation.js';
 import {createSheetSync} from './sheet-sync.js';
+import {createAutofillService} from './autofill/service.js';
+import {supportedATS} from './autofill/profile.js';
+
+const autofill = createAutofillService({local:chrome.storage.local,session:chrome.storage.session,tabs:chrome.tabs,scripting:chrome.scripting,native:nativeRequest});
 
 const sheetSync = createSheetSync({storage: chrome.storage.local,
   lock: task => navigator.locks.request('internship-desk-sheets', task), permissions: chrome.permissions, alarms: chrome.alarms});
@@ -27,6 +32,7 @@ const collector = createCollector({storage: chrome.storage.local, capture: captu
 }});
 const ready = (async () => {
   await chrome.storage.local.setAccessLevel({accessLevel: 'TRUSTED_CONTEXTS'});
+  await withStore(() => migratePdfs(chrome.storage.local));
   await queue.recover();
   await collector.recover();
   await sheetSync.schedule();
@@ -74,10 +80,20 @@ chrome.commands.onCommand.addListener((command, tab) => {
   }
 });
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
-  if (sender.id !== chrome.runtime.id || !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
+  if (sender.id !== chrome.runtime.id) return false;
+  const trusted = sender.url?.startsWith(chrome.runtime.getURL(''));
+  if (!trusted) {
+    if (!sender.tab || !supportedATS(sender.url) || !['autofill_answer','autofill_resume'].includes(message.action)) return false;
+    ready.then(() => message.action==='autofill_answer' ? autofill.answer(message,sender) : autofill.contentResume(sender))
+      .then(respond,error => respond({error:error.message}));
+    return true;
+  }
   (async () => {
     await ready;
     switch (message.action) {
+      case 'autofill_start': return autofill.start(message);
+      case 'autofill_stop': return autofill.stop(message.tabId);
+      case 'autofill_pdf': return autofill.resume(message.key,message.versionId);
       case 'capture_tabs': return captureTabs(message.tabIds, message.options);
       case 'collect_start': {
         const tab = await chrome.tabs.get(message.tabId);

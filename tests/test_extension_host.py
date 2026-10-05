@@ -38,16 +38,25 @@ class ExtensionHostTests(unittest.TestCase):
             with self.assertRaises(ValueError): install('../evil', 'brave', folder)
 
     def test_generation_uses_profile_and_strict_output(self):
-        payload = {'resume':(Path(__file__).resolve().parents[1] / 'Templates/fpga.tex').read_text(), 'letter':'Cover letter '*90, 'changes':['Reordered projects'], 'review_notes':['Check dates']}
+        from native_host.content import template_content
+        baseline = (Path(__file__).resolve().parents[1] / 'Templates/fpga.tex').read_text()
+        content = template_content(baseline)
+        payload = {'entries': [{'id': e['id'], 'bullets': e['bullets']} for e in content['entries']], 'skills': [{'id': e['id'], 'text': e['text']} for e in content['skills']], 'letter':'Cover letter '*90, 'changes':['Tailored content'], 'review_notes':['Check dates']}
         def fake_run(args, **kwargs):
             self.assertIn('--sandbox', args)
+            self.assertEqual(args[args.index('--model') + 1], 'gemini-3.8-flash-low')
+            self.assertEqual(args[args.index('--effort') + 1], 'low')
+            self.assertNotIn('baseline_tex', kwargs['input_text'])
             self.assertNotIn('--dangerously-skip-permissions', args)
             self.assertIn('verified facts', kwargs['input_text'])
             kwargs['prefix'].with_suffix('.stdout').write_text(json.dumps({'event':'result','result':{'status':'SUCCESS','structured_output':payload}}))
             return 0
-        with patch('native_host.host.agy_path', return_value='/mock/agy'), patch('native_host.host.run_bounded', side_effect=fake_run), patch('native_host.host.render_resume', return_value={'approved_projects': []}):
+        with patch('native_host.host.agy_path', return_value='/mock/agy'), patch('native_host.host.run_model', side_effect=fake_run), patch('native_host.host.render_resume', side_effect=AssertionError('Generation must not compile PDFs')):
             result = handle({'action':'generate','job':{'title':'Intern','description':'Full posting '*20},'profile':{'facts':'verified facts '*20}})
-        self.assertEqual(result['resume'], payload['resume'])
+        self.assertIn(r'\begin{document}', result['resume'])
+        self.assertTrue(result['render_pending'])
+        self.assertNotIn('pdf_base64', result)
+        self.assertIn('model_ms', result['timings'])
         self.assertEqual(result['approved_projects'], [])
 
     def test_rejects_malformed_model_result(self):

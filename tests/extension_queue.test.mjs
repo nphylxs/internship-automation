@@ -94,3 +94,68 @@ test('an incomplete batch is rejected before any job is enqueued', async () => {
   assert.equal(f.calls.length, 0);
   assert.equal(f.data().generationQueue, undefined);
 });
+
+test('saves content before rendering and retries a failed PDF without another model call', async () => {
+  const f = fixture();
+  await f.queue.enqueue([request(1)]);
+  await until(() => f.calls.length === 1);
+  const {pdf_base64, ...draft} = result;
+  f.calls[0].resolve({...draft, render_pending: true, timings: {model_ms: 2300}});
+  await until(() => f.calls.length === 2);
+  assert.equal(f.calls[1].input.action, 'render');
+  assert.equal(f.data().jobs[request(1).job.url].versions.length, 1);
+  assert.equal(f.data().jobs[request(1).job.url].versions[0].letter, draft.letter);
+  f.calls[1].reject(new Error('compiler unavailable'));
+  await until(() => f.data().generationQueue[0].state === 'failed');
+  await f.queue.change('retry', '1');
+  await until(() => f.calls.length === 3);
+  assert.equal(f.calls[2].input.action, 'render');
+  f.calls[2].resolve({...result, timings: {render_ms: 300}});
+  await until(() => f.calls.length === 4);
+  assert.equal(f.calls[3].input.action, 'export_documents');
+  f.calls[3].resolve({timings: {export_ms: 100}});
+  await until(() => f.data().generationQueue[0].state === 'completed');
+  const saved = f.data().jobs[request(1).job.url].versions;
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].pdf_base64, undefined, 'PDF is stored outside job metadata');
+  assert.equal(f.data()[saved[0].pdf_key], 'pdf');
+  assert.deepEqual(saved[0].timings, {model_ms: 2300, render_ms: 300, export_ms: 100});
+  assert.equal(f.calls.filter(c => c.input.action === 'generate').length, 1);
+});
+
+test('export retries reuse the saved PDF and snapshot the generation setting', async () => {
+  const f = fixture();
+  await f.options.storage.set({generationSettings: {model: 'gemini-3.8-flash-low', effort: 'low'}});
+  await f.queue.enqueue([request(1)]);
+  await until(() => f.calls.length === 1);
+  assert.equal(f.calls[0].input.generation.effort, 'low');
+  await f.options.storage.set({generationSettings: {model: 'gemini-3.1-pro-high', effort: 'high'}});
+  assert.equal(f.calls[0].input.generation.effort, 'low');
+  f.calls[0].resolve(result);
+  await until(() => f.calls.length === 2);
+  f.calls[1].reject(new Error('disk full'));
+  await until(() => f.data().generationQueue[0].state === 'completed');
+  await f.queue.change('retry', '1');
+  await until(() => f.calls.length === 3);
+  assert.equal(f.calls[2].input.action, 'export_documents');
+  assert.equal(f.calls[2].input.pdf_base64, 'pdf');
+  f.calls[2].resolve({skipped: true});
+  await until(() => !f.data().generationQueue[0].error);
+});
+
+test('restart after draft save preserves an unfinished render for explicit retry', async () => {
+  const f = fixture();
+  await f.queue.enqueue([request(1)]);
+  await until(() => f.calls.length === 1);
+  const {pdf_base64, ...draft} = result;
+  f.calls[0].resolve(draft);
+  await until(() => f.calls.length === 2);
+  const replacement = createQueue(f.options);
+  await replacement.recover();
+  assert.equal(f.data().generationQueue[0].state, 'interrupted');
+  assert.equal(f.data().jobs[request(1).job.url].versions.length, 1);
+  await replacement.change('retry', '1');
+  await until(() => f.calls.length === 3);
+  assert.equal(f.calls[2].input.action, 'render');
+  assert.equal(f.calls.filter(c => c.input.action === 'generate').length, 1);
+});

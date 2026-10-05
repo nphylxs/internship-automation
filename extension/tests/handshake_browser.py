@@ -39,7 +39,7 @@ async def main():
   async with async_playwright() as p:
     with tempfile.TemporaryDirectory(prefix='handshake-extension-test-') as folder:
       copied = Path(folder) / 'extension'
-      shutil.copytree(ROOT, copied)
+      shutil.copytree(ROOT, copied, ignore=shutil.ignore_patterns('node_modules', '__pycache__', '.test-output'))
       manifest_file = copied / 'manifest.json'
       manifest = json.loads(manifest_file.read_text())
       manifest['permissions'].append('tabs')
@@ -94,16 +94,16 @@ async def main():
       popup = await context.new_page()
       popup.on('pageerror', lambda error: errors.append(str(error)))
       await popup.goto(f'chrome-extension://{extension_id}/popup.html')
-      await popup.wait_for_function("() => document.querySelector('#collection-status').textContent.includes('4 listing(s) saved')")
-      assert '4 ready' in await popup.locator('#preparation-status').inner_text()
+      await popup.get_by_text('Collect multiple listings', exact=True).click()
+      await popup.get_by_text('4 saved', exact=False).wait_for()
       assert await popup.locator('#collect-stop').is_hidden()
-      await popup.set_viewport_size({'width': 408, 'height': 600})
+      await popup.set_viewport_size({'width': 600, 'height': 600})
       assert await popup.evaluate("document.querySelector('#workspace').getBoundingClientRect().bottom <= window.innerHeight")
       await popup.screenshot(path='/tmp/internship-desk-collection.png', full_page=True, animations='disabled')
       assert await popup.locator('#popup-ready-count').inner_text() == '4'
-      # The secondary tab picker must remain reachable inside the compact popup.
+      # The secondary tab picker remains reachable in the collection accordion.
       await popup.locator('#choose-tabs').click()
-      assert await popup.locator('#batch').is_visible()
+      assert await popup.locator('#save-selected').is_visible()
       workspace = await context.new_page()
       await workspace.set_viewport_size({'width': 1440, 'height': 1000})
       await workspace.goto(f'chrome-extension://{extension_id}/workspace.html?panel=tracker')

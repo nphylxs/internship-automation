@@ -1,11 +1,15 @@
 import { canonicalUrl, assess } from './core.js';
 import { withStore, jobs } from './store.js';
+import {loadPdf, storePdf, portableBackup} from './documents.js';
+import {generationPresets, generationOptions, defaultGeneration, timingSummary, progressLabels} from './generation.js';
+import {nativeRequest} from './native.js';
 import { icon, element } from './ui.js';
 import {defaultFilters, filterJobs, latestQueueByJob} from './filters.js';
 import {createPdfPreview} from './preview.js';
 import {initTracking} from './tracking-ui.js';
 import {restoreSheetBackup} from './sheets.js';
 const selectedJobs = new Set(), selectedTemplates = new Map();
+const revealedJobs = new Set();
 async function background(message) {
   const result = await chrome.runtime.sendMessage(message);
   if (result.error) throw new Error(result.error);
@@ -33,7 +37,7 @@ function panel(name) {
   const headings = {
     application: ['Application studio', 'FROM OPPORTUNITY TO APPLICATION', 'Make a lasting first impression', 'Your experience, thoughtfully tailored to what comes next.'],
     profile: ['Your profile', 'THE EXPERIENCE BEHIND EVERY APPLICATION', 'A story only you can tell', 'Start with what makes you, you. Bring it to every opportunity.'],
-    tracker: ['Applications', 'YOUR CAREER, IN MOTION', 'Your next chapter, in progress', 'Good opportunities deserve a little intention. Keep yours all in one place.'],
+    tracker: ['Applications', 'YOUR APPLICATION WORKSPACE', 'Your next move, in focus', 'Save opportunities. Prepare your application. Make your next move.'],
     tracking: ['Progress tracker', 'SMALL STEPS. NEW POSSIBILITIES.', 'See how far you’re going', 'From the first application to the next conversation. Every update, in one place.']
   };
   const [label, eyebrow, title, description] = headings[name];
@@ -42,26 +46,22 @@ function panel(name) {
   $('page-description').textContent = description;
 }
 function on(id, action) { $(id).addEventListener('click', async () => { try { await action(); } catch (error) { notify(error.message, true); } }); }
-function native(request) {
-  return new Promise((resolve, reject) => {
-    const port = chrome.runtime.connectNative('com.internship.desk');
-    let done = false;
-    const labels = {generate: 'Antigravity is drafting your resume and letter', suggest_projects: 'Antigravity is developing project ideas', render: 'Compiling your template PDF', export_documents: 'Saving resume and cover letter PDFs'};
-    const started = Date.now(); const label = labels[request.action];
-    const elapsed = () => `${Math.floor((Date.now() - started) / 1000)}s`;
-    const progress = label ? setInterval(() => { $('operation-status').textContent = `${label} · ${elapsed()} elapsed. Keep this tab open.`; }, 1000) : null;
-    const finish = failed => { clearInterval(progress); if (label) $('operation-status').textContent = `${label} · ${failed ? 'stopped' : 'finished'} after ${elapsed()}.`; };
-    const timer = setTimeout(() => { done = true; finish(true); port.disconnect(); reject(new Error('Operation timed out. Try again; previous saved drafts are intact.')); }, 650000);
-    port.onMessage.addListener(message => {
-      done = true; clearTimeout(timer); finish(Boolean(message.error)); port.disconnect();
-      if (message.error) reject(new Error(message.error)); else resolve(message);
-    });
-    port.onDisconnect.addListener(() => {
-      const error = chrome.runtime.lastError;
-      if (!done) { clearTimeout(timer); finish(true); reject(new Error(`Local helper unavailable: ${error?.message || 'connection closed'}. Follow extension/README.md setup instructions.`)); }
-    });
-    port.postMessage(request);
-  });
+async function native(request) {
+  if (['generate', 'suggest_projects'].includes(request.action)) {
+    request = {...request, generation: (await chrome.storage.local.get('generationSettings')).generationSettings || defaultGeneration};
+  }
+  const labels = {generate: 'Writing drafts', suggest_projects: 'Developing project ideas', render: 'Compiling your template PDF', export_documents: 'Saving PDFs'};
+  let label = labels[request.action];
+  const started = Date.now();
+  const elapsed = () => `${Math.floor((Date.now() - started) / 1000)}s`;
+  const update = () => { if (label) $('operation-status').textContent = `${label} · ${elapsed()} elapsed. Keep this tab open.`; };
+  const timer = label ? setInterval(update, 1000) : null;
+  update();
+  let failed = false;
+  try {
+    return await nativeRequest(request, event => { label = progressLabels[event.stage] || label; update(); });
+  } catch (error) { failed = true; throw error; }
+  finally { clearInterval(timer); if (label) $('operation-status').textContent = `${label} · ${failed ? 'stopped' : 'finished'} after ${elapsed()}.`; }
 }
 async function saveJob(source, documents) {
   const key = canonicalUrl(source.url);
@@ -71,7 +71,7 @@ async function saveJob(source, documents) {
     const all = await jobs();
     const old = all[key];
     const record = { ...old, job: {...source, url: key}, status: old?.status || 'Saved', updated: new Date().toISOString(), versions: old?.versions || [] };
-    if (documents) record.versions.push({id: crypto.randomUUID(), created: record.updated, ...documents});
+    if (documents) record.versions.push(await storePdf(chrome.storage.local, {id: crypto.randomUUID(), created: record.updated, ...documents}));
     all[key] = record;
     await chrome.storage.local.set({jobs: all});
     return Boolean(old);
@@ -90,8 +90,10 @@ function showDraft(version) {
   $('resume').value = version.resume; $('letter').value = version.letter;
   $('review-notes').textContent = `CHANGES\n${(version.changes || []).join('\n')}\n\nREVIEW BEFORE APPLYING\n${(version.review_notes || []).join('\n')}`;
   draftSource = version;
+  $('generation-timing').textContent = timingSummary(version.timings);
   pdfPreview.show(version); pdfPreview.dirty(false);
   showExport(version.export_result);
+  if (version.render_pending || version.render_error) $('export-status').textContent = `Draft text is saved. ${version.render_error || 'PDF preparation is pending.'} Use Retry PDF preparation in the queue, or Refresh preview here.`;
   if (version.template) $('template').value = version.template;
   $('draft-context').textContent = `Drafts for ${version.job.company || 'this company'} — ${version.job.title}. Edits are saved to this application even if you change the listing above.${version.pdf_pages ? ` PDF: ${version.pdf_pages} page(s).${version.pdf_pages > 1 ? ' Shorten bullets or remove a planned project if you want one page, then recompile.' : ''}` : ''}`;
 }
@@ -102,8 +104,8 @@ async function openSavedApplication(key, options = {}) {
   const version = latest.versions.find(v => v.id === options.versionId) || latest.versions.at(-1);
   fill(jobFields, latest.job); $('capture-note').textContent = latest.job.captureNote || 'Loaded a saved application.';
   $('template').value = options.template || version?.template || 'fpga';
-  if (version) showDraft(version);
-  else { draftSource = null; $('resume').value = ''; $('letter').value = ''; $('review-notes').textContent = ''; $('export-status').textContent = ''; pdfPreview.clear(); }
+  if (version) showDraft(await loadPdf(chrome.storage.local, version));
+  else { draftSource = null; $('resume').value = ''; $('letter').value = ''; $('review-notes').textContent = ''; $('export-status').textContent = ''; $('generation-timing').textContent = ''; pdfPreview.clear(); }
   checks(); loadIdeas().catch(error => notify(error.message, true)); panel('application');
   window.scrollTo({top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
 }
@@ -145,7 +147,7 @@ async function renderTracker() {
   if (!Object.keys(all).length) {
     const empty = element('div', 'empty-state');
     const symbol = element('span', 'empty-symbol'); symbol.append(icon('folder'));
-    empty.append(symbol, element('h3', '', 'Every next chapter starts somewhere.'), element('p', '', 'Save a listing with the extension to bring your first opportunity here. Your tailored applications will follow.'));
+    empty.append(symbol, element('h3', '', 'Your next opportunity goes here.'), element('p', '', 'Save a job from your browser, or add a listing to start preparing your application.'));
     const start = element('button', 'secondary', 'Add your first listing'); start.append(icon('plus')); start.onclick = () => panel('application');
     empty.append(start); $('jobs').append(empty); return;
   }
@@ -153,8 +155,14 @@ async function renderTracker() {
     const empty = element('div', 'empty-state'); empty.append(element('h3', '', 'No opportunities match these filters.'), element('p', '', 'Try another company, role, location, or view.'));
     const reset = element('button', 'secondary', 'Clear filters'); reset.onclick = resetFilters; empty.append(reset); $('jobs').append(empty);
   }
-  for (const [key, record] of visible) {
+  for (const [index, [key, record]] of visible.entries()) {
     const row = document.createElement('article'); row.className = 'job application-card'; row.classList.toggle('selected', selectedJobs.has(key));
+    // Storage updates rebuild the list; only new jobs should replay the entrance.
+    if (!revealedJobs.has(key)) {
+      row.classList.add('job-enter');
+      row.style.setProperty('--job-delay', `${380 + Math.min(index, 5) * 45}ms`);
+      revealedJobs.add(key);
+    }
     const pick = document.createElement('input'); pick.type = 'checkbox'; pick.checked = selectedJobs.has(key);
     pick.setAttribute('aria-label', `Select ${record.job.title}`);
     pick.onchange = () => { if (pick.checked) selectedJobs.add(key); else selectedJobs.delete(key); row.classList.toggle('selected', pick.checked); updateSelection(); };
@@ -230,11 +238,15 @@ async function renderQueue() {
     const elapsed = item.started ? ` · ${Math.max(0, Math.round((Date.parse(item.finished || new Date().toISOString()) - Date.parse(item.started)) / 1000))}s` : '';
     const header = element('div', 'queue-item-header');
     header.append(icon(item.state === 'completed' ? 'check' : ['failed', 'interrupted'].includes(item.state) ? 'alert' : 'clock'), element('strong', '', item.company || 'Application'), element('span', 'queue-state', `${item.state === 'completed' ? 'Ready' : item.state}${elapsed}`));
+    const clock = header.lastElementChild;
+    if (item.started && !item.finished) { clock.dataset.queueClock = item.started; clock.dataset.stateLabel = item.state; }
     row.append(header, element('p', 'queue-item-title', item.title));
+    if (item.progress?.stage) row.append(element('p', 'hint', progressLabels[item.progress.stage] || 'Preparing documents'));
+    if (item.timings) row.append(element('p', 'hint', timingSummary(item.timings)));
     if (item.error) row.append(element('p', 'queue-item-error', item.error));
-    if (['failed', 'interrupted', 'pending'].includes(item.state)) {
+    if (['failed', 'interrupted', 'pending'].includes(item.state) || (item.state === 'completed' && item.error)) {
       const action = item.state === 'pending' ? 'cancel' : 'retry';
-      const button = document.createElement('button'); button.className = 'secondary'; button.textContent = action === 'retry' ? 'Retry this job' : 'Remove from queue';
+      const button = document.createElement('button'); button.className = 'secondary'; button.textContent = action === 'retry' ? (item.timings?.model_ms !== undefined ? 'Retry PDF preparation' : 'Retry this job') : 'Remove from queue';
       button.onclick = async () => { try { await background({action: 'queue_change', operation: action, id: item.id}); await renderTracker(); } catch (error) { notify(error.message, true); } };
       row.append(button);
     }
@@ -263,9 +275,20 @@ on('queue-selected', async () => {
   notify(`${result.added.length} application(s) queued. ${result.skipped.length} already queued or prepared with these inputs. Keep browsing while drafts are prepared.`);
   await renderTracker();
 });
+setInterval(() => {
+  for (const clock of document.querySelectorAll('[data-queue-clock]')) {
+    clock.textContent = `${clock.dataset.stateLabel} · ${Math.max(0, Math.round((Date.now() - Date.parse(clock.dataset.queueClock)) / 1000))}s`;
+  }
+}, 1000);
 let refreshTimer;
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !['jobs', 'generationQueue', 'queueSettings'].some(key => key in changes)) return;
+  if (!changes.jobs && !changes.queueSettings && changes.generationQueue) {
+    const {oldValue = [], newValue = []} = changes.generationQueue;
+    if (oldValue.length === newValue.length && newValue.every((item, i) => item.id === oldValue[i]?.id && item.state === oldValue[i]?.state)) {
+      void renderQueue().catch(error => notify(error.message, true)); return;
+    }
+  }
   clearTimeout(refreshTimer);
   refreshTimer = setTimeout(() => renderTracker().catch(error => notify(error.message, true)), 100);
 });
@@ -335,7 +358,7 @@ async function compileDraft(approved) {
   generationBusy = true;
   try {
     const result = await native({action: 'render', template: draftSource.template, resume: $('resume').value, approved_projects: approved});
-    const version = {...draftSource, ...result, letter: $('letter').value};
+    const version = {...draftSource, ...result, render_pending: false, render_error: '', timings: {...draftSource.timings, ...result.timings}, letter: $('letter').value};
     showDraft(version); return version;
   } finally { generationBusy = false; }
 }
@@ -403,6 +426,12 @@ jobFields.forEach(key => $(key).addEventListener('change', () => loadIdeas().cat
 document.querySelectorAll('[data-panel]').forEach(el => el.onclick = () => panel(el.dataset.panel));
 on('check', checks);
 on('connection', async () => { const response = await native({action: 'health'}); notify(response.message); });
+on('save-generation-settings', async () => {
+  const generationSettings = generationPresets[$('generation-speed').value];
+  if (!generationSettings) throw new Error('Choose a generation speed.');
+  await chrome.storage.local.set({generationSettings});
+  $('generation-settings-note').textContent = 'Saved. New applications and project suggestions use this setting; queued applications keep their original setting.';
+});
 on('save-profile', async () => { profile = values(profileFields); if (profile.facts.length < 100) throw new Error('Add at least 100 characters of verified resume facts.'); await chrome.storage.local.set({profile}); notify('Profile saved.'); checks(); });
 on('import-profile', async () => { if ($('facts').value && !confirm('Replace the profile editor with existing resume sources? Your saved profile stays unchanged until you save.')) return; const result = await native({action: 'profile'}); $('facts').value = result.facts; notify('Resume sources imported. Review facts and dates, then save your profile.'); });
 on('save-job', async () => { const existed = await saveJob(values(jobFields)); await renderTracker(); notify(existed ? 'Already saved — listing updated; document history preserved.' : 'Application saved to your inbox.'); });
@@ -425,7 +454,7 @@ for (const kind of ['resume', 'letter']) {
   on(`print-${kind}`, () => printDocument(kind));
   on(`download-${kind}`, async () => { if (!$(kind).value.trim()) throw new Error('No draft to download yet.'); if (kind === 'resume' && draftSource?.template) { const v = await compileDraft(draftSource.approved_projects || []); download(v.resume_tex, 'resume.tex'); } else download($(kind).value, `${kind}.txt`); });
 }
-on('backup', async () => { const data = await chrome.storage.local.get(null); download(JSON.stringify({format: 1, ...data}, null, 2), 'internship-desk-backup.json'); notify('Backup exported. It contains your profile, application documents, and tracker history.'); });
+on('backup', async () => { const data = await portableBackup(chrome.storage.local); download(JSON.stringify(data, null, 2), 'internship-desk-backup.json'); notify('Backup exported. It contains your profile, application documents, and tracker history.'); });
 $('restore').onchange = async event => {
   try {
     const file = event.target.files[0]; if (!file) return;
@@ -434,6 +463,7 @@ $('restore').onchange = async event => {
     if (data.format !== 1 || !data.jobs || typeof data.jobs !== 'object' || Array.isArray(data.jobs)) throw new Error('Invalid backup format.');
     if (data.sheetTracker) restoreSheetBackup(data.sheetTracker);
     const validProfile = p => p && profileFields.every(k => typeof p[k] === 'string') && p.facts.length <= 90000 && p.skills.length <= 5000 && p.constraints.length <= 5000;
+    if (data.generationSettings) generationOptions(data.generationSettings);
     if (data.profile && !validProfile(data.profile)) throw new Error('Invalid profile in backup.');
     for (const [key, r] of Object.entries(data.jobs)) {
       const validJob = j => j && jobFields.every(k => typeof j[k] === 'string') && j.description.length <= 60000 && canonicalUrl(j.url) === key;
@@ -457,7 +487,13 @@ $('restore').onchange = async event => {
     await withStore(async () => {
       const queue = (await chrome.storage.local.get('generationQueue')).generationQueue || [];
       if (queue.some(item => ['pending', 'running', 'saving'].includes(item.state))) throw new Error('Finish or remove queued jobs before restoring a backup.');
-      await chrome.storage.local.set({...restoredIdeas, jobs: {...await jobs(), ...data.jobs}, ...(data.profile ? {profile: data.profile} : {})});
+      for (const record of Object.values(data.jobs)) {
+        for (let i = 0; i < record.versions.length; i++) {
+          delete record.versions[i].pdf_key;
+          record.versions[i] = await storePdf(chrome.storage.local, record.versions[i]);
+        }
+      }
+      await chrome.storage.local.set({...restoredIdeas, jobs: {...await jobs(), ...data.jobs}, ...(data.profile ? {profile: data.profile} : {}), ...(data.generationSettings ? {generationSettings: data.generationSettings} : {})});
     });
     // Do not hold the jobs lock while waking a worker that may need it for recovery.
     if (data.sheetTracker) await background({action: 'sheet_restore', tracker: data.sheetTracker});
@@ -471,10 +507,13 @@ async function init() {
   profile = (await chrome.storage.local.get('profile')).profile || {}; fill(profileFields, profile);
   filters = {...defaultFilters, ...(await chrome.storage.local.get('opportunityFilters')).opportunityFilters}; showFilters();
   const params = new URL(location.href).searchParams;
-  if (['tracker', 'tracking', 'profile', 'application'].includes(params.get('panel'))) panel(params.get('panel'));
+  panel(['tracker', 'tracking', 'profile', 'application'].includes(params.get('panel'))
+    ? params.get('panel') : params.has('capture') ? 'application' : 'tracker');
   initTracking({request: background, openApplication: openSavedApplication});
   const id = params.get('capture');
   if (id) { const capture = (await chrome.storage.session.get(id))[id]; if (capture) { fill(jobFields, capture); $('capture-note').textContent = capture.captureNote + (capture.truncated ? ' Text was truncated at 60,000 characters.' : ''); checks(); } }
+  const configured = (await chrome.storage.local.get('generationSettings')).generationSettings || defaultGeneration;
+  $('generation-speed').value = Object.keys(generationPresets).find(key => generationPresets[key].model === configured.model && generationPresets[key].effort === configured.effort) || 'fast';
   await renderTracker(); await loadIdeas(); await loadExportSettings();
   await background({action: 'queue_wake'});
 }

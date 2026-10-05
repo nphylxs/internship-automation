@@ -1,0 +1,6 @@
+{
+  "outputs": [
+    "dist/popup.js.LEGAL.txt",
+    "dist/popup.js"
+  ]
+}

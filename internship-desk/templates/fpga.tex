@@ -1,0 +1,177 @@
+%-------------------------
+% Resume in Latex
+% Author : Jake Gutierrez
+% Based off of: https://github.com/sb2nov/resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+\pdfgentounicode=1
+
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge \scshape Divyamshu Shrestha} \\ \vspace{1pt}
+    \small 656-214-1160 $|$ \href{mailto:divyamshu@usf.edu}{\underline{divyamshu@usf.edu}} $|$
+    \href{https://linkedin.com/in/divyamshuu}{\underline{linkedin.com/in/divyamshuu}} $|$
+    \href{https://github.com/nphylxs}{\underline{github.com/nphylxs}}
+\end{center}
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {University of South Florida}{Tampa, FL}
+      {Bachelor of Science in Electrical Engineering}{Expected Graduation: May 2028}
+      \resumeItemListStart
+        \resumeItem{GPA: 3.92; Dean's List $|$ Junior Standing}
+        \resumeItem{\textbf{Relevant Coursework:} Microprocessor Principles, Applied Industrial AI, Electrical Systems, Power Electronics, Digital Circuits, Signals \& Systems, Data Network \& Systems}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+%-----------EXPERIENCE-----------
+\section{Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {RARE Lab}{Jul. 2025 -- Aug. 2026}
+      {Junior Undergraduate Researcher III}{Tampa, FL}
+      \resumeItemListStart
+        \resumeItem{Co-authored ``Bloom Preview: A Low-Cost LLM-Powered Social Robot," published in the \textbf{HRI 2026} Interactivity proceedings, detailing hardware-software integration for modular platforms.}
+        \resumeItem{Engineered low-latency touch sensor arrays and gesture control interfaces, utilizing I2C and SPI protocols to bridge physical hardware sensors with the onboard LLM-compute unit.}
+        \resumeItem{Modeled high-fidelity 3D assemblies in \textbf{SolidWorks}, utilizing the SW2URDF exporter to generate accurate simulation models for kinematic analysis.}
+        \resumeItem{Designed custom 4-layer PCBs in \textbf{Altium Designer} for power distribution and sensor logic, implementing EMI shielding and optimized trace routing to maintain signal integrity for high-frequency motor controllers.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+  {Nepalese Students' Association at USF}{Jun. 2025 -- Present}
+  {President}{Tampa, FL}
+  \resumeItemListStart
+    \resumeItem{Spearheaded a disaster relief initiative---including organizing a community vigil---that successfully raised over \$3000 from local residents and university students to support flood victims in Nepal.}
+    \resumeItem{Direct the annual operating budget and financial documentation for a 100+ member student organization, overseeing all funding requests and expense allocations.}
+    \resumeItem{Partner with multiple regional Nepalese associations across Florida to conceptualize and execute cultural events, maximizing community engagement and fundraising efforts.}
+  \resumeItemListEnd
+      
+  \resumeSubHeadingListEnd
+
+%-----------PROJECTS-----------
+\section{Projects}
+  \resumeSubHeadingListStart
+  \resumeSubheading
+      {Asynchronous FIFO Design for Clock Domain Crossing}{Sept. 2026}
+      {Digital Hardware Design Project}{}
+      \resumeItemListStart
+        \resumeItem{Designed and simulated an asynchronous FIFO buffer in \textbf{Verilog} to safely transfer data between two independent clock domains, mitigating metastability risks.}
+        \resumeItem{Implemented dual n-bit Gray code counters for read and write pointers to ensure glitch-free pointer synchronization across clock boundaries.}
+        \resumeItem{Synthesized the RTL design onto a physical \textbf{FPGA development board} using \textbf{Vivado Design Suite} to validate physical hardware timing constraints and logic utilization.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {UVM Verification Testbench for ALU Design}{Aug. 2026}
+      {Hardware Verification Project}{}
+      \resumeItemListStart
+        \resumeItem{Architected a scalable Universal Verification Methodology (\textbf{UVM}) testbench in SystemVerilog to verify the functional correctness of a pipelined Arithmetic Logic Unit (ALU).}
+        \resumeItem{Developed constrained random sequences and transactions to stress-test edge cases, achieving 100\% functional coverage on critical arithmetic operations.}
+        \resumeItem{Engineered automated self-checking scoreboards and monitors to compare Device Under Test (DUT) outputs against a golden reference model in real-time.}
+      \resumeItemListEnd
+    \resumeSubheading
+      {Custom Lithium-Ion Battery Pack \& BMS Integration}{Apr. 2026}
+      {Personal Project}{}
+      \resumeItemListStart
+        \resumeItem{Designed a high-capacity replacement battery pack for a Meepo V5 after a critical failure, selecting \textbf{Samsung 30Q 18650} cells in a \textbf{10S2P} configuration to optimize energy density.}
+        \resumeItem{Integrated a dedicated Battery Management System (BMS) to manage cell balancing, thermal monitoring, and overcurrent protection, ensuring safety and longevity.}
+        \resumeItem{Optimized the power-to-weight ratio, resulting in a 33\% increase in effective range (from 12 miles to 16 miles) through strategic cell configuration and load management.}
+      \resumeItemListEnd
+
+    
+
+  \resumeSubHeadingListEnd
+
+%-----------SKILLS-----------
+\section{Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+    \textbf{Hardware Description \& Languages}{: SystemVerilog, Verilog, C/C++, Python} \\
+    \textbf{EDA \& Design Tools}{: Vivado Design Suite, Altium Designer, KiCad, LTspice, SolidWorks} \\
+    \textbf{Protocols \& Embedded Systems}{: I2C, SPI, UART, PWM, Bare-Metal GPIO, ESP32, Raspberry Pi} \\
+    \textbf{Software \& Scripting}{: Linux, Git, Bash, Tcl}
+    }}
+ \end{itemize}
+
+%-------------------------------------------
+\end{document}

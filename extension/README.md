@@ -1,7 +1,80 @@
 # Internship Desk for Brave
 
 A Manifest V3 extension for desktop Brave, Chrome, and Chromium. Click it on an
-internship listing to save it without leaving the page, or collect selected open job tabs and prepare applications in a background queue.
+internship listing to save it without leaving the page, collect open job tabs and
+prepare applications in a background queue, or fill an open ATS application with
+your saved contact details and reviewed answer drafts.
+
+## Autofill and the new popup (version 0.10)
+
+The popup now uses React, Tailwind CSS, and Framer Motion, with separate
+**Capture & tracking** and **Apply & autofill** tabs. Its dimensions are 600 × 600
+pixels, with a scrolling main panel and a persistent workspace button. Chrome
+limits action popups to 600 pixels in height; dimensions belong in CSS, not
+unsupported manifest fields. Motion respects the system's reduced-motion setting.
+
+**Updating:** reload this extension at `brave://extensions`, accept its new access
+to Workday, Greenhouse, and Lever, and reload open application pages. Register the
+updated helper once, from this repository's root:
+
+```bash
+python3 extension/install_helper.py YOUR_EXTENSION_ID --browser brave
+```
+
+Replace `YOUR_EXTENSION_ID` with the ID shown on the extension's card. This
+registration enables answer generation and retains the existing resume, PDF, and
+cover-letter actions. Older release notes below describe earlier updates; their
+“no reinstall” instructions do not apply to version 0.10.
+
+1. Save the full job description through **Capture & tracking**. Prepare and
+   review the tailored resume in **Open applications & queue**.
+2. Open the employer's application page, then **Apply & autofill → Your autofill
+   profile**. Save your exact contact, education, and link values. This structured
+   profile is separate from the verified narrative profile used for generation.
+3. Choose the saved application and, if available, the reviewed resume version.
+   Click **Fill this page**. Existing values stay intact; empty fields with unknown
+   labels or missing profile values get a yellow outline. Fields added dynamically
+   on the same page are handled while autofill is active.
+4. Click **Generate answer** beside an essay field. Review the draft and any
+   missing-fact notes, then click **Use this answer** to insert it. If you edit the
+   field while generation runs, your text is preserved. Answers use the selected
+   version's saved JD and profile; without a version, they use the saved listing
+   and current narrative profile. Only one answer runs per tab at a time.
+5. Use **Download PDF** or **Download selected resume** beside a resume upload
+   field, then select the downloaded file using the employer's upload control.
+   Choose a version explicitly so the extension uses the intended document.
+
+**Pause autofill & clear highlights** remains available when reopening the popup.
+It leaves entered values intact. Changing the selected role or resume pauses
+autofill; click **Fill this page** again to use that selection. Reloading or
+navigating to another application also requires a fresh fill action. Review the
+whole application before submitting it yourself.
+
+The engine supports HTTPS pages on `*.myworkdayjobs.com`, `*.myworkdaysite.com`,
+Greenhouse's `boards`/`job-boards` hosts (including EU), and `jobs.lever.co` /
+`jobs.eu.lever.co`. It fills standard visible inputs and unambiguous native
+dropdowns. Custom dropdowns, date pickers, consent, eligibility, and demographic
+questions remain manual. Login/password forms and CAPTCHAs are excluded. Fields
+inside shadow DOM or an ATS embedded on an unrelated employer domain require
+manual entry. It never advances application steps, creates accounts, or submits.
+
+The profile editor also accepts JSON, for example:
+
+```json
+{
+  "firstName": "Ada",
+  "lastName": "Example",
+  "email": "ada@example.com",
+  "university": "Example University",
+  "major": "Electrical Engineering",
+  "graduationYear": "2027",
+  "linkedin": "https://www.linkedin.com/in/your-profile"
+}
+```
+
+Use your own values and omit anything you have not supplied. Additional supported
+keys are `preferredName`, `phone`, `addressLine1`, `addressLine2`, `city`, `state`,
+`postalCode`, `country`, `degree`, `github`, and `website`.
 
 ## Install on this Linux computer
 
@@ -12,11 +85,11 @@ internship listing to save it without leaving the page, or collect selected open
 4. In a terminal in the repository, register the local helper:
 
    ```bash
-   python3 native_host/install.py YOUR_EXTENSION_ID
+   python3 extension/install_helper.py YOUR_EXTENSION_ID --browser brave
    ```
 
 5. Pin **Internship Desk** from Brave's extensions menu. Open a listing and click it.
-6. Click **Check local helper**. The helper requires Python 3.10+ and your installed,
+6. Open **Open applications & queue → Your profile**, then click **Check local helper**. The helper requires Python 3.10+ and your installed,
    signed-in `agy` CLI. It requires `pdflatex` and the packages used by your original LaTeX templates. It does not require a server or separate API key.
 7. Open **Your profile → Import existing resume sources**, review the imported
    FPGA, Robotics, and Power resume facts, add skills and eligibility notes, and
@@ -27,6 +100,63 @@ repository or reload the unpacked extension under a different ID. For Chrome or
 Chromium, add `--browser chrome` or `--browser chromium`. Linux and macOS host
 registration are supported; Windows registration is not implemented. Flatpak/Snap
 browser sandbox packages may require native messaging integration outside this installer.
+
+## Faster generation and recoverable PDFs (version 0.9)
+
+Reload the extension at `brave://extensions` and close/reopen existing workspace
+and popup tabs. The local helper uses the same installation path; no reinstall
+or new permissions are needed.
+
+In **Your profile → Generation speed**, choose **Fast** (default), **Balanced**,
+or **Careful**, then save. The presets pin an Antigravity model and effort:
+
+| Preset | Model | Effort |
+| --- | --- | --- |
+| Fast | `gemini-3.8-flash-low` | low |
+| Balanced | `gemini-3.8-flash-medium` | medium |
+| Careful | `gemini-3.1-pro-high` | high |
+
+New queue items snapshot this setting; changing it never changes an in-flight
+application. The setting also applies to project suggestions. Model availability
+and latency depend on your signed-in account. An unavailable model produces an
+error rather than silently changing models. Review factuality and writing at all
+speeds. The existing **2 — parallel** option improves batch throughput when quota
+allows; it does not shorten an individual model request.
+
+The model now returns selected entry IDs, plain-text bullets, skill rows, and the
+letter. Python assembles the approved template, preserving its preamble, contact
+header, section order, entry headings/dates, and skill labels. It escapes returned
+text and validates the assembled document before saving. Entries can be omitted
+and bullets shortened; fixed heading conflicts are flagged for review. The
+advanced LaTeX editor and older saved drafts still work.
+
+Imported profiles now omit template code and exact repeated fact blocks. Existing
+LaTeX profiles are compacted in memory for each request; saved profile text is
+unchanged. Plain-text profiles pass through as written, and annotations/conflicting
+facts are retained. With the bundled sources, compaction reduces the imported
+profile from 22,634 to 9,149 characters; structured content also avoids returning
+the full formatting code. Payload reductions are not a guaranteed latency ratio. A single live test on a
+representative FPGA job took about 7 seconds in Fast mode and 66 seconds in
+Balanced mode; both compiled to one page. This compares the new presets, not the
+previous pipeline, and does not establish equivalent writing quality.
+
+Generation is saved **before** PDF compilation. If compilation fails or the browser
+closes after the draft was saved, use **Retry PDF preparation** in the queue; it
+reuses the saved text. Failed folder exports can also be retried without a model
+request. Queue progress distinguishes model startup, content generation, PDF
+compilation, and export; completed rows and opened drafts show stage timings.
+Model/effort and available token usage are retained with document versions.
+
+PDF bytes now use separate, content-addressed local storage entries. Existing
+inline PDFs migrate automatically, with bytes written before metadata changes.
+Opening a document loads only its PDF, and unchanged PDFs can be shared by
+multiple versions. Progress updates avoid rewriting document history. Backups
+still contain complete inline PDFs and restore in the existing portable format.
+
+Regression coverage includes content escaping and all three real templates,
+streamed progress and process timeouts, failed compilation/export retries, saved
+setting snapshots, PDF migration and backups, plus the browser workflow. The
+browser smoke test simulates model output and uses the real local PDF compiler.
 
 ## Progress tracker, themes, and responsive workspace (version 0.8)
 
@@ -288,11 +418,20 @@ you moved the repository or changed the extension ID.
 
 ## Storage and privacy
 
-The extension reads pages on your capture action or during a collection you start,
-using `activeTab` for the current page or optional site access for selected tabs. Granted site access remains
-until you revoke it in browser extension settings. There are no content scripts
-running on websites in the background. Internal browser pages and inaccessible frames require manual
-pasting. It does not collect cookies or form values or submit applications.
+Capture reads pages on your action or during a collection you start, using
+`activeTab` for the current page or optional site access for selected tabs.
+Granted site access remains until revoked in browser extension settings. An ATS
+content script inspects visible field labels and adds answer/upload helpers on
+the supported hosts. Filling starts only after **Fill this page**. It reads
+existing field values to preserve them; those values are not sent to the model.
+The page receives only the structured autofill profile, selected-role context,
+and explicitly requested answer or PDF. The background worker keeps saved JDs,
+narrative profiles, and history in trusted extension storage, and authorizes
+answer/PDF requests against the exact browser document and application selection.
+An answer request sends the question, saved JD, and verified narrative profile to
+the existing local model pipeline. The extension does not collect cookies or
+submit applications. Internal browser pages and inaccessible fields require
+manual entry.
 
 Profile, jobs, project proposals, Sheet updates, and document versions (including compiled PDFs) live in `chrome.storage.local`, separate from
 the old project's CSV tracker. They are not encrypted or synced. **Export backup**
@@ -328,18 +467,40 @@ The prompt prohibits invented facts, but you still need to check each document.
 
 ## Development and verification
 
-No build step or JavaScript dependencies are needed. Reload at `brave://extensions`
-after edits. Python uses only the standard library.
+The ready-to-load `dist/` popup assets are included. After editing `popup/`,
+rebuild them with the pinned dependencies below, then reload the extension and
+open ATS pages. All scripts, fonts, and styles are bundled locally; there are no
+runtime CDN dependencies. Python uses only the standard library.
+
+The architecture separates the React popup, conservative DOM engine
+(`autofill/engine.js`), pure profile matching, and a background service that owns
+document grants and model requests. `answer_host.py` adds answer generation while
+delegating existing actions to `../native_host/host.py`; it reuses the same model
+runner and speed settings, with no additional server or API key. Consequently,
+the active extension still needs this repository's native helper and templates.
 
 ```bash
+# From the repository root:
+npm --prefix extension ci
+npm --prefix extension run build
 python3 -m unittest discover -s tests -q
+python3 -m unittest discover -s extension/tests -p 'test_answer_host.py' -v
 npm --prefix extension test
 # Optional browser smoke check; requires Playwright and its Chromium browser:
 # Run from the repository root:
 venv/bin/python tests/browser_extension_smoke.py
 venv/bin/python extension/tests/handshake_browser.py
 venv/bin/python extension/tests/tracker_browser.py
+venv/bin/python extension/tests/autofill_browser.py
 ```
+
+The autofill browser test uses isolated local ATS fixtures, a real React-controlled
+input, and mocked native answers. It checks all three ATS hosts, dynamic fields,
+unknown-field highlighting, preservation of user edits, answer review, selected
+PDF downloads, navigation isolation, and popup tabs/themes. It submits nothing
+and uses no model quota. These fixtures do not guarantee compatibility with every
+employer's custom form. A restricted OS sandbox may prevent Chromium launching;
+run the browser tests from a normal terminal in that case.
 
 The smoke check uses a temporary browser profile and simulated model responses; it compiles the actual local templates with `pdflatex`. It covers persistence, fit snippets, duplicate
 jobs, editable documents, print preview, version history, and helper errors. It also checks parallel batch preparation and completion after the workspace closes. It does

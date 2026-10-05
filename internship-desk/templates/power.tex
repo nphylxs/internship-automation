@@ -1,0 +1,172 @@
+%-------------------------
+% Resume in Latex
+% Author : Jake Gutierrez
+% Based off of: https://github.com/sb2nov/resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+\pdfgentounicode=1
+
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge \scshape Divyamshu Shrestha} \\ \vspace{1pt}
+    \small 656-214-1160 $|$ \href{mailto:divyamshu@usf.edu}{\underline{divyamshu@usf.edu}} $|$
+    \href{https://linkedin.com/in/divyamshuu}{\underline{linkedin.com/in/divyamshuu}} $|$
+    \href{https://github.com/nphylxs}{\underline{github.com/nphylxs}}
+\end{center}
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {University of South Florida}{Tampa, FL}
+      {Bachelor of Science in Electrical Engineering}{Expected Graduation: May 2028}
+      \resumeItemListStart
+        \resumeItem{GPA: 3.92; Dean's List $|$ Junior Standing}
+        \resumeItem{\textbf{Relevant Coursework:} Microprocessor Principles, Applied Industrial AI, Electrical Systems, Power Electronics, Digital Circuits, Signals \& Systems, Data Network \& Systems}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+%-----------EXPERIENCE-----------
+\section{Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {RARE Lab}{Jul. 2025 -- Aug. 2026}
+      {Junior Undergraduate Researcher III}{Tampa, FL}
+      \resumeItemListStart
+        \resumeItem{Co-authored ``Bloom Preview: A Low-Cost LLM-Powered Social Robot," published in the \textbf{HRI 2026} Interactivity proceedings, detailing hardware-software integration for modular platforms.}
+        \resumeItem{Modeled high-fidelity 3D assemblies of modular robot platforms in \textbf{SolidWorks}, utilizing the SW2URDF exporter to generate accurate simulation models for kinematic analysis.}
+        \resumeItem{Designed custom 4-layer PCBs in \textbf{Altium Designer} for power distribution and sensor logic, implementing EMI shielding and optimized trace routing to support high-frequency communication between the onboard LLM-compute unit and motor controllers.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+  {Nepalese Students' Association at USF}{Jun. 2025 -- Present}
+  {President}{Tampa, FL}
+  \resumeItemListStart
+    \resumeItem{Spearheaded a disaster relief initiative---including organizing a community vigil---that successfully raised over \$3000 from local residents and university students to support flood victims in Nepal.}
+    \resumeItem{Direct the annual operating budget and financial documentation for a 100+ member student organization, overseeing all funding requests and expense allocations.}
+    \resumeItem{Partner with multiple regional Nepalese associations across Florida to conceptualize and execute cultural events, maximizing community engagement and fundraising efforts.}
+  \resumeItemListEnd
+      
+  \resumeSubHeadingListEnd
+
+%-----------PROJECTS (POWER)-----------
+\section{Projects}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {ML-Enhanced Transmission Grid Simulator}{Mar. 2026}
+      {Power Systems Analysis}{}
+      \resumeItemListStart
+        \resumeItem{Built a Python and Pandapower simulation tool to automate N-1 contingency analysis on an IEEE 30-bus network, evaluating NERC-compliant voltage limits (0.95 -- 1.05 pu).}
+        \resumeItem{Architected a stochastic data pipeline generating 1,000+ realistic grid failure scenarios by introducing randomized load scaling and enforcing generator reactive power constraints.}
+        \resumeItem{Trained a Scikit-Learn Random Forest classifier to predict cascading grid violations based on outage states, bridging traditional power system physics with predictive AI.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Automated Substation Protection Logic}{Oct. 2026}
+      {Industrial Control Systems}{}
+      \resumeItemListStart
+        \resumeItem{Developing ladder logic and structured text for Programmable Logic Controllers (\textbf{PLCs}) to automate relay tripping and fault isolation in a simulated medium-voltage distribution network.}
+        \resumeItem{Simulating transient responses and fault current clearing times using \textbf{LTspice} to validate the physical limitations of the proposed protection scheme.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Custom Lithium-Ion Battery Pack \& BMS Integration}{Apr. 2026}
+      {Energy Storage Project}{}
+      \resumeItemListStart
+        \resumeItem{Designed a high-capacity replacement battery pack utilizing Samsung 30Q 18650 cells in a 10S2P configuration to optimize energy density.}
+        \resumeItem{Integrated a Battery Management System (BMS) to handle active cell balancing, thermal monitoring, and overcurrent protection, increasing effective discharge range by 33\%.}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+%-----------SKILLS (POWER)-----------
+\section{Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+    \textbf{Power \& Controls}{: Pandapower, N-1 Contingency Analysis, Programmable Logic Controllers (PLCs), BMS} \\
+    \textbf{Design \& Simulation}{: LTspice, SolidWorks, Altium Designer, MATLAB/Simulink} \\
+    \textbf{Programming \& Data}{: Python, C++, SQL, PostgreSQL} \\
+    \textbf{Libraries}{: Pandas, NumPy, Scikit-Learn, Matplotlib}
+    }}
+ \end{itemize}
+
+%-------------------------------------------
+\end{document}

@@ -43,6 +43,14 @@ async def main():
       await page.locator('#skills').fill('FPGA, SystemVerilog, Python')
       await page.locator('#constraints').fill('Available summer 2027; employer authorization needs review.')
       await page.locator('#save-profile').click()
+      await page.locator('#generation-speed').select_option('fast')
+      await page.locator('#save-generation-settings').click()
+      await page.set_viewport_size({'width':360,'height':900})
+      assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+      await page.locator('#generation-speed').scroll_into_view_if_needed()
+      await page.screenshot(path='/tmp/internship-desk-generation-settings.png', animations='disabled')
+      await page.set_viewport_size({'width':1280,'height':900})
+      await page.wait_for_function("() => document.querySelector('#generation-settings-note').textContent.startsWith('Saved.')")
       await page.get_by_role('button', name='01 / Application').click()
       await page.locator('#title').fill('FPGA Intern')
       await page.locator('#company').fill('Example Labs')
@@ -59,8 +67,9 @@ async def main():
         if request['action'] == 'suggest_projects':
           return {'projects':[{'title':'AXI Stream DSP Verification Platform', 'scope':'Develop a DSP pipeline with randomized verification and a hardware demo.', 'relevance':'AXI and FPGA verification in the role', 'build_plan':'Implement RTL, scoreboards, then a reproducible demo.', 'success_targets':'Target throughput and coverage; measure after implementation.', 'effort':'Four weeks; FPGA board and simulator.'}]}
         if request['action'] == 'generate':
+          assert request['generation'] == {'model': 'gemini-3.8-flash-low', 'effort': 'low'}
           baseline=(ROOT/'Templates'/f"{request['template']}.tex").read_text()
-          return {**handle({**request, 'action':'render', 'resume':baseline}), 'letter':'Dear Hiring Team, '+ 'Relevant verified experience. '*50, 'changes':['Preserved template.'], 'review_notes':['Verify employer authorization.']}
+          return {'resume': baseline, 'template': request['template'], 'approved_projects': request.get('approved_projects', []), 'render_pending': True, 'timings': {'model_ms': 500}, 'letter':'Dear Hiring Team, '+ 'Relevant verified experience. '*50, 'changes':['Preserved template.'], 'review_notes':['Verify employer authorization.']}
         return handle(request)
       # Bridge background native messages to the Python fixture, independently of workspace lifetime.
       await worker.evaluate("""() => {
@@ -99,6 +108,11 @@ async def main():
       assert 'PDFs saved automatically' in export_status, export_status
       assert len(list((Path(profile) / 'application-pdfs').rglob('*.pdf'))) == 2
       assert (await page.locator('#resume-preview').get_attribute('src')).startswith('blob:')
+      assert 'Drafting: 0.5s' in await page.locator('#generation-timing').inner_text()
+      stored = await worker.evaluate("async () => (await chrome.storage.local.get('jobs')).jobs")
+      stored_version = list(stored.values())[0]['versions'][0]
+      assert 'pdf_base64' not in stored_version
+      assert stored_version['pdf_key'].startswith('pdf:')
       assert await page.locator('#resume').is_hidden()
       await page.set_viewport_size({'width':1440,'height':1100})
       await page.locator('.documents').scroll_into_view_if_needed()
@@ -197,6 +211,6 @@ async def main():
       assert not errors, errors
       bridge.cancel()
       await asyncio.gather(bridge, *bridge_tasks, return_exceptions=True)
-      print(json.dumps({'extension_id':ext,'browser_errors':errors,'checks':['profile persistence','fit evidence','URL deduplication','mocked generation','version history','real template PDF','automatic company-named resume and letter PDFs','project suggestions','approve and remove planned projects','submission tracking','reload persistence','missing helper error','parallel batch generation','generation survives workspace close','queue persistence','selected-tab popup capture','batch capture deduplication','unselected tabs untouched']}))
+      print(json.dumps({'extension_id':ext,'browser_errors':errors,'checks':['profile persistence','fit evidence','URL deduplication','saved speed setting','content saved before real PDF compilation','separate PDF storage','stage timings','mocked generation','version history','real template PDF','automatic company-named resume and letter PDFs','project suggestions','approve and remove planned projects','submission tracking','reload persistence','missing helper error','parallel batch generation','generation survives workspace close','queue persistence','selected-tab popup capture','batch capture deduplication','unselected tabs untouched']}))
       await context.close()
 asyncio.run(main())

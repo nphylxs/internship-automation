@@ -137,7 +137,7 @@ def validate_documents(payload: dict, baseline: str) -> None:
     # output from adding file IO, macro definitions, or low-level TeX primitives.
     baseline_clean, body_clean = without_comments(baseline_body), without_comments(body)
     command_pattern = r"\\([A-Za-z@]+|[^A-Za-z@\s])"
-    allowed_commands = set(re.findall(command_pattern, baseline_clean))
+    allowed_commands = set(re.findall(command_pattern, baseline_clean)) | {'textbackslash', 'textasciitilde', 'textasciicircum', '&', '%', '$', '#', '_', '{', '}'}
     new_commands = set(re.findall(command_pattern, body_clean)) - allowed_commands
     if new_commands:
         raise GenerationError("Generated resume added unapproved LaTeX commands: " +

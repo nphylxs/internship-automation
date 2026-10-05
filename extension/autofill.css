@@ -1,0 +1,9 @@
+/* Scoped attributes avoid Tailwind preflight/reset rules on employer pages. */
+[data-internship-autofill="manual"] {
+  outline: 2px solid #eab308 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgb(234 179 8 / 18%) !important;
+}
+@media (forced-colors: active) {
+  [data-internship-autofill="manual"] { outline: 2px dashed Highlight !important; }
+}

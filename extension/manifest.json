@@ -1,15 +1,24 @@
 {
   "manifest_version": 3,
   "name": "Internship Desk",
-  "version": "0.8.1",
+  "version": "0.10.0",
   "minimum_chrome_version": "110",
-  "description": "Collect internship listings and prepare tailored application documents in the background.",
+  "description": "Save internships, prepare tailored documents, and fill application forms with reviewed profile facts.",
   "permissions": ["activeTab", "scripting", "storage", "nativeMessaging", "alarms", "unlimitedStorage"],
   "optional_permissions": ["tabs"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
-  "action": {"default_title": "Save internships and prepare applications", "default_popup": "popup.html"},
+  "action": {"default_title": "Save internships and fill applications", "default_popup": "popup.html"},
   "commands": {"save-listing": {"suggested_key": {"default": "Alt+Shift+S"}, "description": "Save the current internship without leaving the page"}},
   "background": {"service_worker": "background.js", "type": "module"},
   "options_page": "workspace.html",
+  "content_scripts": [{
+    "matches": ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*", "https://boards.greenhouse.io/*", "https://boards.eu.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://job-boards.eu.greenhouse.io/*", "https://jobs.lever.co/*", "https://jobs.eu.lever.co/*"],
+    "js": ["autofill-content.js"], "css": ["autofill.css"], "run_at": "document_idle", "all_frames": true
+  }],
+  "host_permissions": ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*", "https://boards.greenhouse.io/*", "https://boards.eu.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://job-boards.eu.greenhouse.io/*", "https://jobs.lever.co/*", "https://jobs.eu.lever.co/*"],
+  "web_accessible_resources": [{
+    "resources": ["autofill/engine.js", "autofill/profile.js"],
+    "matches": ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*", "https://boards.greenhouse.io/*", "https://boards.eu.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://job-boards.eu.greenhouse.io/*", "https://jobs.lever.co/*", "https://jobs.eu.lever.co/*"]
+  }],
   "content_security_policy": {"extension_pages": "script-src 'self'; object-src 'none'; frame-src 'self' blob:"}
 }

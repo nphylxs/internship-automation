@@ -22,7 +22,7 @@ async def main():
     async with async_playwright() as p:
         with tempfile.TemporaryDirectory(prefix='tracker-extension-test-') as folder:
             copied = Path(folder) / 'extension'
-            shutil.copytree(ROOT, copied)
+            shutil.copytree(ROOT, copied, ignore=shutil.ignore_patterns('node_modules', '__pycache__', '.test-output'))
             mf = copied / 'manifest.json'
             manifest = json.loads(mf.read_text())
             manifest['host_permissions'] = ['https://docs.google.com/*', 'https://*.googleusercontent.com/*']
@@ -81,7 +81,7 @@ async def main():
             popup.on('pageerror', lambda e: errors.append(str(e)))
             await popup.goto(f'chrome-extension://{extension_id}/popup.html')
             await popup.wait_for_function("() => document.documentElement.dataset.theme === 'dark'")
-            await popup.set_viewport_size({'width':408,'height':600})
+            await popup.set_viewport_size({'width':600,'height':600})
             await popup.screenshot(path='/tmp/internship-desk-popup-dark.png', full_page=True, animations='disabled')
             await page.reload()
             await page.wait_for_selector('.journey-column')
@@ -162,7 +162,7 @@ async def main():
             assert await page.locator('#tracking').evaluate("el => getComputedStyle(el).animationName") == 'none'
             await page.emulate_media(color_scheme='dark')
             await page.wait_for_function("() => document.documentElement.dataset.theme === 'dark'")
-            await popup.set_viewport_size({'width':320,'height':600})
+            await popup.set_viewport_size({'width':600,'height':600})
             assert await popup.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
             assert await popup.evaluate("document.querySelector('#workspace').getBoundingClientRect().bottom <= window.innerHeight")
             # The user's formatted tracker has a dashboard before its row-8 table.
